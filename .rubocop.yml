@@ -29,6 +29,32 @@ Naming/PredicatePrefix:
 Naming/PredicateMethod:
   Enabled: false
 
+# The spec suite is ported from the host app and keeps its house testing style —
+# behaviour-lockdown examples with multiple assertions, message stubs and ivar-carried
+# Faraday stubs. Restyling them would churn a review-hardened suite for no behaviour gain.
+RSpec/MultipleExpectations:
+  Enabled: false
+RSpec/ExampleLength:
+  Enabled: false
+RSpec/MessageSpies:
+  Enabled: false
+RSpec/InstanceVariable:
+  Enabled: false
+RSpec/NoExpectationExample:
+  Enabled: false
+RSpec/StubbedMock:
+  Enabled: false
+RSpec/IndexedLet:
+  Enabled: false
+RSpec/LeakyConstantDeclaration:
+  Enabled: false
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+Lint/ConstantDefinitionInBlock:
+  Exclude:
+    - spec/**/*
+
 Style/Documentation:
   Enabled: false
 

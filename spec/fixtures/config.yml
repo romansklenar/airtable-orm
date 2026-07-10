@@ -1,0 +1,100 @@
+# Test-base IDs mirroring the airtable-test section of the host app's config/airtable.yml —
+# the schema fixture below was dumped from this base.
+base_id: appVntahBV9Q4evA7
+tables:
+  case:
+    id: tblQeKH7yYesvWf5p
+    name: Případy
+    fields:
+      _id: id
+      advisor_ids: fldgU5KU1qlN8eJ3v
+      analytics_id: flduy6aIN1cu9y7tp
+      index: fldRUUsh1o3Bg7rbn
+      category: fldD1WRLpBI9mAiDs
+      client_ids: fldSEpOBL5EK8tet4
+      contract_reward: fldnl3iI8dK6tqTv4
+      domain: fldk5uvzOnTtKuYTM
+      event_id: fldzLdZlLiGunc5iX
+      event_date: fldfUggWScuAesRF9
+      guarantee: fldHlnwpHpEfijIzr
+      inserted_at: fldXLR6X2vsCgMKRT
+      insurance_company: fldbFdxrypABQ0CFj
+      label: fldkoTa6n6MEWCoB8
+      lawyer_ids: fldSl1XjBwEmoI3M9
+      other_assignee_ids: fldtbyjdhoVHxr7IR
+      potential: fldQrcHD99Cysg3Ce
+      assignee_ids: fldLCDWLNLqqyVTPR
+      scope: fldjmq8NMilNmkdWc
+      sign_in_at: fldblrnUHsU4n3TKj
+      slug: fldjmop6Gfzf35Rz9
+      source: fldy2RNDROB066S4W
+      state: fldvNM08xhKBYPA5D
+      tags: fldBBrvs9tYZTe1OX
+      kind: fldQBQwmmTf1TrxGD
+      web: fldjczZy80fA5TtfW
+      property_risk: fldbhOZdadWbOVkF3
+      life_risk: fldMfYZyPFf3uh1xo
+      moje_eucs_id: fldWX2CnjsCuEEmVU
+      novy: fldUTKP68jseB6ejN
+      closure_reason: fldpjgaVoZsN4LxMM
+      substatus: flds7OQFBXtOSWmCv
+      advisor_communication_preference: fldGCUq86jkoYbIMp
+      client_subscription: fldIwVBm9d4f6aTOI
+  client:
+    id: tbl8MkbTpROqjERoD
+    name: Klienti
+    fields:
+      _id: id
+      first_name: fldGL536HB0zxZZk2
+      last_name: fldswBdW2qDG6JwMG
+      display_name: fldwpvl0gVHzwlTyL
+      email: fldBn8I7io39SblLk
+      phone: fldXLkHq6rR6lOrDy
+      street: fldnV7TliyJe328uo
+      city: fldg7tbFj5TsLsTIs
+      zip: flde98QkRyziRzbrH
+      birth_date: fld9Fdkqzij45AAgy
+      bank_account: fldyHapjlbEF4B8nc
+      parent_user_ids: fldXwbKFEWoibFKDx
+      case_ids: fldV5PPBURwNfzgl9
+      moje_eucs_id: fldDgOfJ1q7LbesW7
+  advisor:
+    id: tbleoyNiKPdtrYTvu
+    name: Poradci
+    fields:
+      _id: id
+      first_name: fldBef3WAOAh2xwob
+      last_name: fldDlWabxOUqdoTye
+      display_name: fldAPONflYOURSCoS
+      email: fldeJx4TC0QqLwATs
+      phone: fldGPztBKb0RLndwK
+      street: fldZblErmDz14Zo3W
+      city: fldNYJxTYbwFc3ymp
+      zip: fldNQ2ZXdwZ5HRnKh
+      birth_date: fldEUatXH12uHcPlu
+      bank_account: fldwR6zGCZFOrpJ1i
+      client_ids: fldB5N17sJxDTe49x
+      case_ids: fldmvgFoHAV3atb6c
+      moje_eucs_id: fldDpLAG1ADOYc7aP
+  assignee:
+    id: tblzNP9qLiyITNUe6
+    name: Osoby
+    fields:
+      _id: id
+      display_name: fldBsne5dO3akJkA7
+      first_name: fldyP7DLcifzyWML6
+      last_name: fldhAg21ewBTYSVCp
+      email: fld9zlKWI0kouecaG
+      phone: fldPNTMIl5VHPsjhR
+      case_ids: fldIZ7Wn9Ti6n1i2m
+      moje_eucs_id: fld13bzUA7BcOWJFy
+  order:
+    id: tbl2c7dsnW2mLlYJZ
+    name: Objednávky
+    fields:
+      _id: id
+      last_name: fld6wehlldRiIg68v
+      email: fldAiimtwIlNimSTR
+      phone: fldZA5rvqz3wtJukY
+      state: fld1jdCswufZyk6l9
+      summary: fldDkv0c3QXcGncE5

@@ -1,0 +1,1418 @@
+{
+  "tables": [
+    {
+      "id": "tblzNP9qLiyITNUe6",
+      "name": "Osoby",
+      "primaryFieldId": "fldBsne5dO3akJkA7",
+      "fields": [
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "IF({fldhAg21ewBTYSVCp}, {fldhAg21ewBTYSVCp} & ' ') & {fldyP7DLcifzyWML6}",
+            "referencedFieldIds": [
+              "fldhAg21ewBTYSVCp",
+              "fldyP7DLcifzyWML6"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldBsne5dO3akJkA7",
+          "name": "Jméno a příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldyP7DLcifzyWML6",
+          "name": "Jméno"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldhAg21ewBTYSVCp",
+          "name": "Příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fld9zlKWI0kouecaG",
+          "name": "E-mail"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldPNTMIl5VHPsjhR",
+          "name": "Telefon"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl8MkbTpROqjERoD",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldUlWCbtTEVPaOxd"
+          },
+          "id": "fldckq5zj1EDBugz3",
+          "name": "Klient"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbleoyNiKPdtrYTvu",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldd2mbeklUxSOWeA"
+          },
+          "id": "fldxe1Ia8n0yVHN1d",
+          "name": "Poradce"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblQeKH7yYesvWf5p",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldLCDWLNLqqyVTPR"
+          },
+          "id": "fldIZ7Wn9Ti6n1i2m",
+          "name": "Odpovědná osoba"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblQeKH7yYesvWf5p",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldtbyjdhoVHxr7IR"
+          },
+          "id": "fldkZh0ACHNwvQq9i",
+          "name": "Participující osoba"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblQeKH7yYesvWf5p",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldSl1XjBwEmoI3M9"
+          },
+          "id": "fldKjCS86t7ZMiWuS",
+          "name": "Právní - Odpovědná osoba"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwyui6bqlDLNAEEn",
+          "name": "Všechny osoby",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tbl8MkbTpROqjERoD",
+      "name": "Klienti",
+      "primaryFieldId": "fldwpvl0gVHzwlTyL",
+      "fields": [
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "IF({fldswBdW2qDG6JwMG}, {fldswBdW2qDG6JwMG} & ' ') & {fldGL536HB0zxZZk2}",
+            "referencedFieldIds": [
+              "fldswBdW2qDG6JwMG",
+              "fldGL536HB0zxZZk2"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldwpvl0gVHzwlTyL",
+          "name": "Jméno a příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldGL536HB0zxZZk2",
+          "name": "Jméno"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldswBdW2qDG6JwMG",
+          "name": "Příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldBn8I7io39SblLk",
+          "name": "E-mail"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldXLkHq6rR6lOrDy",
+          "name": "Telefon"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          },
+          "id": "fld9Fdkqzij45AAgy",
+          "name": "Datum narození"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldnV7TliyJe328uo",
+          "name": "Ulice"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldg7tbFj5TsLsTIs",
+          "name": "Obec"
+        },
+        {
+          "type": "singleLineText",
+          "id": "flde98QkRyziRzbrH",
+          "name": "PSČ"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldyHapjlbEF4B8nc",
+          "name": "Číslo účtu"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbleoyNiKPdtrYTvu",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldB5N17sJxDTe49x"
+          },
+          "id": "fldXwbKFEWoibFKDx",
+          "name": "Poradce"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblQeKH7yYesvWf5p",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldSEpOBL5EK8tet4"
+          },
+          "id": "fldV5PPBURwNfzgl9",
+          "name": "Případy"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblzNP9qLiyITNUe6",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldckq5zj1EDBugz3"
+          },
+          "id": "fldUlWCbtTEVPaOxd",
+          "name": "Osoby"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwq6D2pmMfe3x5rX",
+          "name": "Všichni klienti",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tbleoyNiKPdtrYTvu",
+      "name": "Poradci",
+      "primaryFieldId": "fldAPONflYOURSCoS",
+      "fields": [
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "IF({fldDlWabxOUqdoTye}, {fldDlWabxOUqdoTye} & ' ') & {fldBef3WAOAh2xwob}",
+            "referencedFieldIds": [
+              "fldDlWabxOUqdoTye",
+              "fldBef3WAOAh2xwob"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldAPONflYOURSCoS",
+          "name": "Jméno a příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldBef3WAOAh2xwob",
+          "name": "Jméno"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldDlWabxOUqdoTye",
+          "name": "Příjmení"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldeJx4TC0QqLwATs",
+          "name": "E-mail"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldGPztBKb0RLndwK",
+          "name": "Telefon"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          },
+          "id": "fldEUatXH12uHcPlu",
+          "name": "Datum narození"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldZblErmDz14Zo3W",
+          "name": "Ulice"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldNYJxTYbwFc3ymp",
+          "name": "Obec"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldNQ2ZXdwZ5HRnKh",
+          "name": "PSČ"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldwR6zGCZFOrpJ1i",
+          "name": "Číslo účtu"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl8MkbTpROqjERoD",
+            "isReversed": false,
+            "prefersSingleRecordLink": true,
+            "inverseLinkFieldId": "fldXwbKFEWoibFKDx"
+          },
+          "id": "fldB5N17sJxDTe49x",
+          "name": "Klient"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblQeKH7yYesvWf5p",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldgU5KU1qlN8eJ3v"
+          },
+          "id": "fldmvgFoHAV3atb6c",
+          "name": "Případy"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblzNP9qLiyITNUe6",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldxe1Ia8n0yVHN1d"
+          },
+          "id": "fldd2mbeklUxSOWeA",
+          "name": "Osoby"
+        }
+      ],
+      "views": [
+        {
+          "id": "viw5HqcguwvuXoYBo",
+          "name": "Všichni poradci",
+          "type": "grid"
+        }
+      ]
+    },
+    {
+      "id": "tblQeKH7yYesvWf5p",
+      "name": "Případy",
+      "primaryFieldId": "fldRUUsh1o3Bg7rbn",
+      "fields": [
+        {
+          "type": "formula",
+          "options": {
+            "isValid": true,
+            "formula": "{fldjmop6Gfzf35Rz9} & ': ' & {fldkoTa6n6MEWCoB8} & ', ' & {fldSEpOBL5EK8tet4}",
+            "referencedFieldIds": [
+              "fldjmop6Gfzf35Rz9",
+              "fldkoTa6n6MEWCoB8",
+              "fldSEpOBL5EK8tet4"
+            ],
+            "result": {
+              "type": "singleLineText"
+            }
+          },
+          "id": "fldRUUsh1o3Bg7rbn",
+          "name": "Případ"
+        },
+        {
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            },
+            "timeFormat": {
+              "name": "24hour",
+              "format": "HH:mm"
+            },
+            "timeZone": "client"
+          },
+          "id": "fldXLR6X2vsCgMKRT",
+          "name": "Vloženo"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldjmop6Gfzf35Rz9",
+          "name": "ID"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldkoTa6n6MEWCoB8",
+          "name": "Název"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbl8MkbTpROqjERoD",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldV5PPBURwNfzgl9"
+          },
+          "id": "fldSEpOBL5EK8tet4",
+          "name": "Klient"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tbleoyNiKPdtrYTvu",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldmvgFoHAV3atb6c"
+          },
+          "id": "fldgU5KU1qlN8eJ3v",
+          "name": "Poradce"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblzNP9qLiyITNUe6",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldIZ7Wn9Ti6n1i2m"
+          },
+          "id": "fldLCDWLNLqqyVTPR",
+          "name": "Odpovědná osoba"
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblzNP9qLiyITNUe6",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldkZh0ACHNwvQq9i"
+          },
+          "id": "fldtbyjdhoVHxr7IR",
+          "name": "Participující osoba",
+          "description": "M: Spoluřešitelé na případu, kteří nejsou evidovaní jako odpovědná osoba. \nVyplňuje odpovědná osoba v moment delegování části odpovědnosti na příslušného kolegu."
+        },
+        {
+          "type": "multipleRecordLinks",
+          "options": {
+            "linkedTableId": "tblzNP9qLiyITNUe6",
+            "isReversed": false,
+            "prefersSingleRecordLink": false,
+            "inverseLinkFieldId": "fldKjCS86t7ZMiWuS"
+          },
+          "id": "fldSl1XjBwEmoI3M9",
+          "name": "Právní - Odpovědná osoba",
+          "description": "M: V případě, kdy je případ předán právnímu oddělení, přiřazuje odpovědný řešitel odpovědnou osobu z právního oddělení. "
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selVvcgJo20TcnSre",
+                "name": "Nový",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selBjHMmfjcsid12W",
+                "name": "Řešený",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selGtvI7m6CbvxKeI",
+                "name": "Vyřešený",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selMSq7l0J9oKdDCr",
+                "name": "Neřešený",
+                "color": "redLight2"
+              },
+              {
+                "id": "selckCjbrgu4MZHBl",
+                "name": "Uzavřený",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel1e2cPPsQMmRvRg",
+                "name": "Otevřený",
+                "color": "tealLight2"
+              }
+            ]
+          },
+          "id": "fldvNM08xhKBYPA5D",
+          "name": "Stav případu"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selbX905dzcEBqT14",
+                "name": "Nový",
+                "color": "blueLight2"
+              }
+            ]
+          },
+          "id": "fldN5aOAwwuw572p9",
+          "name": "Stav likvidace"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selyaaTDdDv1hST8r",
+                "name": "Řešení nároků poškozených",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selejSehIkFEr9MSs",
+                "name": "Likvidace pojistných událostí (Nehlášené škody)",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "seldEraE4tb98PSv9",
+                "name": "Spory s pojišťovnami (Již nahlášené škody)",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selbzDiiZ6gtyERn5",
+                "name": "Právní služby",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selqQIB9HYRLb6nIB",
+                "name": "Webové formuláře",
+                "color": "yellowLight2"
+              }
+            ]
+          },
+          "id": "fldD1WRLpBI9mAiDs",
+          "name": "Kategorie případu"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "seltNlecd3lv2ju42",
+                "name": "Nezaviněná dopravní nehoda s újmou na zdraví",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selAcdwCySbIJ3Wt5",
+                "name": "Nezaviněná dopravní nehoda bez újmy na zdraví (znehodnocení vozidla havárií, totální škoda)",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selWJEoltlHaj4UFP",
+                "name": "Pracovní úraz",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selyHk2b8fFHCUdDy",
+                "name": "Životní a úrazové pojištění",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selptx0A1ESb22YBs",
+                "name": "Pojištění domácnosti a nemovitosti",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selDBzEWaiUW1nSdF",
+                "name": "Havarijní pojištění",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selZFzAgSBW2LeONs",
+                "name": "Pojištění odpovědnosti",
+                "color": "redLight2"
+              },
+              {
+                "id": "selSZ0eIgA1CRq24E",
+                "name": "Podnikatelské pojištění",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selWwiLGrxwsOcLSE",
+                "name": "Ostatní pojištění",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sel3z0BwR0Fl3ANu8",
+                "name": "Koupě nemovitosti",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selMgX2LEd4FAPdxa",
+                "name": "Prodej nemovitosti",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selVVhQgL4XWhwGK8",
+                "name": "Nájemní smlouva",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel1zk9y3DaciBmfI",
+                "name": "Jiné",
+                "color": "greenLight2"
+              }
+            ]
+          },
+          "id": "fldQBQwmmTf1TrxGD",
+          "name": "Typ"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selumMM9xLA8mwrW6",
+                "name": "Online formulář",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selUWbWMndtXDsczG",
+                "name": "Partnerský web",
+                "color": "cyanLight2"
+              }
+            ]
+          },
+          "id": "fldy2RNDROB066S4W",
+          "name": "Původ"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selgepmxbDdX4kG1e",
+                "name": "eucs.cz",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selJVaIKEArQpnDRL",
+                "name": "poradnaposkozeneho.cz",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selMkbOloFQbeJEzI",
+                "name": "maximalniplneni.cz",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selAmABdfVc8I6oGC",
+                "name": "eucs.cz/iframe",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selsQ4L8DXtvsxf0M",
+                "name": "jtbank.eucs.cz",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "seln42W2mpXuRyZTq",
+                "name": "poradnaposkodeneho.sk",
+                "color": "tealLight2"
+              }
+            ]
+          },
+          "id": "fldjczZy80fA5TtfW",
+          "name": "Web"
+        },
+        {
+          "type": "singleLineText",
+          "id": "fldk5uvzOnTtKuYTM",
+          "name": "Doména"
+        },
+        {
+          "type": "number",
+          "options": {
+            "precision": 0
+          },
+          "id": "flduy6aIN1cu9y7tp",
+          "name": "AnalyticsID"
+        },
+        {
+          "type": "rating",
+          "options": {
+            "icon": "star",
+            "max": 7,
+            "color": "yellowBright"
+          },
+          "id": "fldQrcHD99Cysg3Ce",
+          "name": "Potenciál",
+          "description": "M: očekávaný příjem vepisujeme v moment převzetí případu a revidujeme v moment zasmluvnění případu a v momentě objevení zásadních skutečností, které mají na potenciál vliv. POZOR, potenciál se počítá bez DPH, tedy po pronásobení očekáváné výplaty * podílová odměna je potřeba vydělit 1,21.\n\nS očekávaným příjmem 0 Kč je 1 hvězda.\nS očekávaným příjmem do 5 000 Kč jsou 2 hvězdy.\nS očekávaným příjmem do 25 000 Kč jsou 3 hvězdy.\nS očekávaným příjmem do 50 000 Kč jsou 4 hvězdy.\nS očekávaným příjmem do 150 000 Kč je 5 hvězd.\nS očekávaným příjmem nad 150 000+ Kč je 6 hvězd.\nS očekávaným příjmem v řádech dvou a více stovek tisíc korun je 7 hvězd. *Tzv. Megakauza*.\n\nPotenciál je orientační, pro jeho určení tedy není nutné znát přesné okolnosti a vyhodnocení případu."
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selXTfwpBXegXSihP",
+                "name": "Allianz",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selq8HmY707WwzgGp",
+                "name": "Česká podnikatelská pojišťovna",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selTtSZYcjwIveTEx",
+                "name": "Česká pojišťovna",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selqQDbW7Lr1lrREc",
+                "name": "ČSOB",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selwYbRUEU2ouVadr",
+                "name": "Direct",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "selvijJU0G9o4Bj1v",
+                "name": "Generali",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selvwjKOOL9qeFVeR",
+                "name": "Generali Česká",
+                "color": "redLight2"
+              },
+              {
+                "id": "seloXlpeN8qqgUlvQ",
+                "name": "Kooperativa",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selEUtyBhhNu8qfUB",
+                "name": "Metlife",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selx1qwPDQNiauhzO",
+                "name": "NN",
+                "color": "grayLight2"
+              },
+              {
+                "id": "seluofqSaMB5DSARj",
+                "name": "Uniqa",
+                "color": "blueLight1"
+              }
+            ]
+          },
+          "id": "fldbFdxrypABQ0CFj",
+          "name": "Pojišťovna",
+          "description": "M: V moment převzetí případu."
+        },
+        {
+          "type": "number",
+          "options": {
+            "precision": 0
+          },
+          "id": "fldzLdZlLiGunc5iX",
+          "name": "Číslo PU",
+          "description": "M: V moment přidělení PU.\nVkládáme číslo pojistné události, která se váže k případu. Číslo PU nám slouží později k identifikaci příchozích plateb. Sloupec Číslo PU je vždy viditelný pro C, B i L."
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selz7wlYJh9K384NL",
+                "name": "Dotaz",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selQbaFlKyTNff4FD",
+                "name": "Posouzení",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "sel20o3H17PchVeBQ",
+                "name": "Kauza",
+                "color": "tealLight2"
+              },
+              {
+                "id": "sel1c9MkJWrQvGkUk",
+                "name": "Kauza v režimu Garance EUCS",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selu0BfACG4I9qXQc",
+                "name": "Dotaz v režimu Garance EUCS",
+                "color": "greenLight1"
+              },
+              {
+                "id": "selxitSMfzqYSPsrT",
+                "name": "Dotaz v režimu Garance SME",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "sel5PwAGcuoF4DJBn",
+                "name": "Kauza v režimu Garance SME",
+                "color": "yellowLight1"
+              },
+              {
+                "id": "selRFP0zfTYBD2FW6",
+                "name": "Dotaz v režimu Právní klinika",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selDWR8G1LhC7WJtc",
+                "name": "Kauza v režimu Právní klinika",
+                "color": "orangeLight1"
+              },
+              {
+                "id": "seldvrRGFpsnNXSbm",
+                "name": "Likvidace v ceně tarifu",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selMi8ZMW47kZsejG",
+                "name": "Likvidace za úplatu",
+                "color": "grayLight1"
+              }
+            ]
+          },
+          "id": "fldjmq8NMilNmkdWc",
+          "name": "Rozsah",
+          "description": "M: v moment přidělení případu.\n\nDotaz – jestliže byl případ veden a uzavřen v rozsahu odpovědi na dotaz klienta či poradce.\n\nPosouzení – jestliže došlo v případu pouze k bezplatnému či zpoplatněnému posouzení.\n\nKauza – jestliže se případ překlenul z fáze dotaz/posouzení do reálného řešení - to je možné obecně definovat zasmluvněním klienta. Existují ale výjimky, kdy za kauzu lze považovat i nezasmluvněný případ, který ale splňuje parametry kauzy, tj. nic nebrání zasmluvnění, ale k zasmluvnění z nějakých iracionálních důvodů nedojde. Pak takovou kauzu označíme jako neřešenou.\n\nKauza v režimu Garance - zastupujeme klienta, na jehož případ se vztahuje produkt Garance EUCS (jak bezplatné zastoupení, zastoupení za sníženou podílovou odměnu označujeme jako Kauza).\n\nDotaz v režimu Garance - zodpovězení dotazu klientovi Garance\n\nKauza v režimu Právní klinika - za sníženou odměnu advokáta řešíme požadavek klienta Právní kliniky\n\nDotaz v režimu Právní klinika - zodpovězení právního dotazu klientovi Právní kliniky\n\nLikvidace v ceně tarifu – již se nepoužívá.\n\nLikvidace za úplatu –  již se nepoužívá.\n\nSloupec Rozsah případu je vždy viditelný pro C, B i L."
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          },
+          "id": "fldfUggWScuAesRF9",
+          "name": "Datum události",
+          "description": "M: Vyplňuje se při zasmluvnění z důvodu hlídání promlčení. Má na starosti vždy odpovědný řešitel. Je nutná dvojitá kontrola (o)(o) (o)(o)."
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso",
+              "format": "YYYY-MM-DD"
+            }
+          },
+          "id": "fldblrnUHsU4n3TKj",
+          "name": "Datum zasmluvnění",
+          "description": "M:  Vkládáme datum, kdy smlouva vstoupí v platnost, tedy je obdařena podpisy obou stran, pokud není smlouvou určeno jinak. Sloupec datum zasmluvnění je vždy viditelný pro C, B i L."
+        },
+        {
+          "type": "checkbox",
+          "options": {
+            "icon": "check",
+            "color": "greenBright"
+          },
+          "id": "fldHlnwpHpEfijIzr",
+          "name": "Garance v době vzniku případu"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selkneCzC1bocO9wb",
+                "name": "5.00 %",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selBuI8lirmdyapxA",
+                "name": "10.00 %",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selaSdt9mJdyB5TGp",
+                "name": "15.00 %",
+                "color": "tealLight2"
+              }
+            ]
+          },
+          "id": "fldnl3iI8dK6tqTv4",
+          "name": "Smluvená PO (vč. DPH)",
+          "description": "M: V moment zasmluvnění.\nVkládáme výši smluvené podílové odměny dle platné smlouvy s klientem.\n\nUdáváme vč. DPH!"
+        },
+        {
+          "type": "multipleSelects",
+          "options": {
+            "choices": [
+              {
+                "id": "selPr2PX6wdgvSVFU",
+                "name": "Nový"
+              },
+              {
+                "id": "sel9D5iVAfEddGiLB",
+                "name": "Odložený"
+              },
+              {
+                "id": "selc9nlNKunvo02h0",
+                "name": "Příznak 1"
+              },
+              {
+                "id": "selWsT2NZlRWEiFko",
+                "name": "Příznak 2"
+              },
+              {
+                "id": "selYmTENh6ZNbwrrm",
+                "name": "Test-3"
+              },
+              {
+                "id": "seloFosqiuMr9QnpB",
+                "name": "Test-4"
+              },
+              {
+                "id": "selrhLDYMN7z1bsSA",
+                "name": "Neřešený"
+              },
+              {
+                "id": "selzAL2gDAOWEGWwe",
+                "name": "Neekonomický"
+              },
+              {
+                "id": "selRnAvgwyoRFegfl",
+                "name": "Klient nepodepsal"
+              },
+              {
+                "id": "selD46LGN3aMyrfDq",
+                "name": "Klient odstoupil"
+              },
+              {
+                "id": "selae2EL6N8pbrzch",
+                "name": "Technikálie"
+              },
+              {
+                "id": "selky4adJsLdneVoV",
+                "name": "Nelikvidní"
+              },
+              {
+                "id": "selxkT4Ff7UxLMvcD",
+                "name": "Klient/Poradce nereaguje (pouze do zasmluvnění)"
+              },
+              {
+                "id": "sel1m2Y19j4TCGrQ6",
+                "name": "Zaviněná dopravní nehoda"
+              },
+              {
+                "id": "selbJjhUJW5kOi1Py",
+                "name": "Řeší po vlastní ose"
+              },
+              {
+                "id": "selpm92EpmTdmpnDK",
+                "name": "Zahraniční prvek"
+              },
+              {
+                "id": "selHkhTXbJj1R8Yap",
+                "name": "Nespokojenost s výší PO"
+              },
+              {
+                "id": "selmYBV1M8DzzaiiK",
+                "name": "Konkurenční nabídka"
+              },
+              {
+                "id": "selwJMLzsNUow6jd9",
+                "name": "Promlčené nároky"
+              },
+              {
+                "id": "sel5U94yHrwZzgIzv",
+                "name": "Spor/Komplikovaný případ"
+              },
+              {
+                "id": "sell4C2FYX2K3zNrr",
+                "name": "Řeší si jako pracovní úraz"
+              },
+              {
+                "id": "seltrMa9pfOpfsYIq",
+                "name": "Komplikovaný PZ/Spoluvina"
+              },
+              {
+                "id": "selIehL2CuSNjfeCA",
+                "name": "Revize/správně vyhodnoceno pojišťovnou"
+              },
+              {
+                "id": "selKDBQmVmen4vfGc",
+                "name": "Klient nechce dále řešit"
+              },
+              {
+                "id": "selUylNGyUW1PZCjQ",
+                "name": "Zastoupen jiným advokátem"
+              },
+              {
+                "id": "sel3l0fQP3JWPSAm5",
+                "name": "Bez pojistného plnění"
+              },
+              {
+                "id": "sel1DzDeUy1rmIShO",
+                "name": "S pojistným plněním"
+              }
+            ]
+          },
+          "id": "fldBBrvs9tYZTe1OX",
+          "name": "Příznaky"
+        },
+        {
+          "type": "createdBy",
+          "id": "fld1lQKZBIiGse5JL",
+          "name": "Založeno kým"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "seljMoz9jy2cvrpcL",
+                "name": "Záplava a povodeň",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selNv52bpurP3V1gD",
+                "name": "Atmosférické srážky",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selRKhTHQsUOQX3Vv",
+                "name": "Vodovodní škoda",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selvxWdQDSLxPMdhu",
+                "name": "Odpovědnost",
+                "color": "greenLight2"
+              },
+              {
+                "id": "selhlTkEdvsneb3pa",
+                "name": "Požár a výbuch",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seluUrQZtLFRrPryo",
+                "name": "Vichřice",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selyrlGzQCPkGR5i6",
+                "name": "Krupobití",
+                "color": "redLight2"
+              },
+              {
+                "id": "selAuOPRqvA8yub2v",
+                "name": "Tíha sněhu",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selfeacNKZzM62O5O",
+                "name": "Krádež a vandal.",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "selStZi0u9ZNKK05m",
+                "name": "Živočichové",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selhL8aKQFqDb9ckS",
+                "name": "Náraz vozidla",
+                "color": "blueLight1"
+              },
+              {
+                "id": "seldPhiTM1U6KUxzJ",
+                "name": "Sklo",
+                "color": "cyanLight1"
+              },
+              {
+                "id": "selEuF4nmstUU9ppD",
+                "name": "Ostatní",
+                "color": "tealLight1"
+              }
+            ]
+          },
+          "id": "fldbhOZdadWbOVkF3",
+          "name": "Riziko majetek"
+        },
+        {
+          "type": "multipleSelects",
+          "options": {
+            "choices": [
+              {
+                "id": "selAVpAw8HaedkgKp",
+                "name": "smrt z jakýchkoliv příčin",
+                "color": "blueLight2"
+              },
+              {
+                "id": "selFKxejr83wXDVvF",
+                "name": "smrt úrazem",
+                "color": "cyanLight2"
+              },
+              {
+                "id": "selFEEEWRLsQeFQau",
+                "name": "invalidita 1. - 3. stupně",
+                "color": "tealLight2"
+              },
+              {
+                "id": "selJA6L9tuA96pedw",
+                "name": "závislost na péči 1. - 4. stupeň",
+                "color": "greenLight2"
+              },
+              {
+                "id": "seloNY3nly8mRjSq9",
+                "name": "závažná onemocnění",
+                "color": "yellowLight2"
+              },
+              {
+                "id": "seliwO7fRwg5JYiOQ",
+                "name": "pracovní neschopnost - úraz",
+                "color": "orangeLight2"
+              },
+              {
+                "id": "selFmKBUVFloeRzqd",
+                "name": "pracovní neschopnost - nemoc",
+                "color": "redLight2"
+              },
+              {
+                "id": "selH6g5UHLehHRqnP",
+                "name": "denní odškodné úrazu",
+                "color": "pinkLight2"
+              },
+              {
+                "id": "selu5hXzFLUnNcA90",
+                "name": "trvalé následky úrazu",
+                "color": "purpleLight2"
+              },
+              {
+                "id": "sel6378KClF65tXxg",
+                "name": "hospitalizace",
+                "color": "grayLight2"
+              },
+              {
+                "id": "sell3S79NjbUnPwl8",
+                "name": "ošetřování člena rodiny",
+                "color": "blueLight1"
+              },
+              {
+                "id": "selYPSSBqqNIEWTkD",
+                "name": "chirurgický zákrok",
+                "color": "cyanLight1"
+              },
+              {
+                "id": "selnblvqplI4XB8V9",
+                "name": "osvobození od placení (smrt, invalidita)",
+                "color": "tealLight1"
+              },
+              {
+                "id": "sel0KvlQcoLRQ156a",
+                "name": "úvěrové balíček pojištění",
+                "color": "greenLight1"
+              }
+            ]
+          },
+          "id": "fldMfYZyPFf3uh1xo",
+          "name": "Riziko život"
+        },
+        {
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "local",
+              "format": "l"
+            }
+          },
+          "id": "fldZoGdemyLy6WSav",
+          "name": "Poslední komunikace s klientem"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selCLR00",
+                "name": "S pojistným plněním",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR01",
+                "name": "Bez pojistného plnění",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR02",
+                "name": "Neekonomický",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR03",
+                "name": "Klient nepodepsal",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR04",
+                "name": "Klient odstoupil",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR05",
+                "name": "Technikálie",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR06",
+                "name": "Nelikvidní",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR07",
+                "name": "Klient/Poradce nereaguje (pouze do zasmluvnění)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR08",
+                "name": "Zaviněná dopravní nehoda",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR09",
+                "name": "Řeší po vlastní ose",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR10",
+                "name": "Zahraniční prvek",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR11",
+                "name": "Nespokojenost s výší PO",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR12",
+                "name": "Konkurenční nabídka",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR13",
+                "name": "Promlčené nároky",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR14",
+                "name": "Spor/Komplikovaný případ",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR15",
+                "name": "Řeší si jako pracovní úraz",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR16",
+                "name": "Komplikovaný PZ/Spoluvina",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR17",
+                "name": "Revize/správně vyhodnoceno pojišťovnou",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR18",
+                "name": "Klient nechce dále řešit",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCLR19",
+                "name": "Zastoupen jiným advokátem",
+                "color": "grayLight2"
+              }
+            ]
+          },
+          "id": "fldpjgaVoZsN4LxMM",
+          "name": "Uzavření případu"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selSUB00",
+                "name": "Žádný podstav",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB01",
+                "name": "Čekání na podklady",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB02",
+                "name": "Interní analýza případu",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB03",
+                "name": "Nabídka",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB04",
+                "name": "Čekání na smlouvy",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB05",
+                "name": "Nezasmluvněno",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB06",
+                "name": "Likvidace (likvidátor)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB07",
+                "name": "Likvidace (pojišťovna)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB08",
+                "name": "Likvidace (čekání na podklady)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB09",
+                "name": "Likvidace (ext. specialista)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB10",
+                "name": "Uzavřeno (s plněním)",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selSUB11",
+                "name": "Uzavřeno (bez plnění)",
+                "color": "grayLight2"
+              }
+            ]
+          },
+          "id": "flds7OQFBXtOSWmCv",
+          "name": "Podstav případu"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selACP00",
+                "name": "🚨 Kontakt pouze přes poradce",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selACP01",
+                "name": "⚠️ Poradce vždy v kopii",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selACP02",
+                "name": "⚠️ Poradci pouze info o výsledku",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selACP03",
+                "name": "Nekomunikovat s poradcem",
+                "color": "grayLight2"
+              }
+            ]
+          },
+          "id": "fldGCUq86jkoYbIMp",
+          "name": "Preference komunikace s poradcem"
+        },
+        {
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "id": "selCSB00",
+                "name": "🚫 Klient nemá službu EUCS",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCSB01",
+                "name": "⚠️ Klient údajně má službu EUCS",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCSB02",
+                "name": "✅ Garance EUCS",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCSB03",
+                "name": "✅ Právní klinika EUCS",
+                "color": "grayLight2"
+              },
+              {
+                "id": "selCSB04",
+                "name": "✅ Garance SME",
+                "color": "grayLight2"
+              }
+            ]
+          },
+          "id": "fldIwVBm9d4f6aTOI",
+          "name": "Služba klienta"
+        }
+      ],
+      "views": [
+        {
+          "id": "viwTHFVT1BgRQL1oO",
+          "name": "Všechny případy",
+          "type": "grid"
+        }
+      ]
+    }
+  ]
+}

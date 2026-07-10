@@ -16,7 +16,8 @@ module Airtable; end
 loader = Zeitwerk::Loader.for_gem_extension(Airtable)
 loader.inflector.inflect("orm" => "ORM")     # orm.rb / orm/ → ORM, not Orm
 loader.ignore("#{__dir__}/orm/errors.rb")    # one file, many constants — required eagerly below
-loader.ignore("#{__dir__}/orm/testing")      # RSpec-dependent, opt-in via require "airtable/orm/testing"
+# RSpec-dependent test support, opt-in via require "airtable/orm/testing".
+loader.ignore("#{__dir__}/orm/testing.rb", "#{__dir__}/orm/testing")
 loader.setup
 
 module Airtable

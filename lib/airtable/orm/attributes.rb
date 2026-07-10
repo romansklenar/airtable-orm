@@ -53,7 +53,7 @@ module Airtable
         # Useful for testing or when the schema changes
         def clear_schema_cache
           @schema = nil
-          @_filtered_field_mapping = nil
+          @field_mapping = nil
         end
 
         # Get field schema by symbol
