@@ -16,6 +16,19 @@ Style/StringLiteralsInInterpolation:
 Layout/LineLength:
   Max: 120
 
+# Size heuristics don't gate this extracted, review-hardened lib.
+Metrics:
+  Enabled: false
+
+# ActiveRecord-idiom public API: the association DSL is has_many/belongs_to, and
+# save/update return booleans by contract — renaming them would break the point of the gem.
+Naming/PredicatePrefix:
+  AllowedMethods:
+    - has_many
+
+Naming/PredicateMethod:
+  Enabled: false
+
 Style/Documentation:
   Enabled: false
 
