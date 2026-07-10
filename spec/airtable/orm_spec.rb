@@ -7,6 +7,9 @@ RSpec.describe Airtable::ORM do
 
   it "exposes the branded error hierarchy eagerly (class-body macros need no requires)" do
     expect(Airtable::ORM::ConnectionError.ancestors).to include(Airtable::ORM::Error)
+  end
+
+  it "keeps ConnectionError a sibling of ApiError, not a subclass (persistence swallows ApiError)" do
     expect(Airtable::ORM::ConnectionError).not_to be < Airtable::ORM::ApiError
   end
 end

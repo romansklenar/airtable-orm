@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Airtable
   module ORM
     # Base error class for all Airtable-related errors

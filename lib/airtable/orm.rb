@@ -3,8 +3,9 @@
 require "zeitwerk"
 require "active_model"
 require "active_support"
-require "active_support/core_ext" # pluck, deep_symbolize_keys, 24.hours, truncate… are used
-                                  # standalone — active_model alone loads only a tiny subset
+# The lib leans broadly on AS core exts standalone (pluck, deep_symbolize_keys, 24.hours,
+# truncate…) — active_model's transitive requires load only a tiny subset.
+require "active_support/core_ext"
 require "faraday"
 require "faraday/net_http_persistent"
 require "logger"
