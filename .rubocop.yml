@@ -1,0 +1,17 @@
+plugins:
+  - rubocop-packaging
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# The lib is extracted from a Rails app that caps lines at 120.
+Layout/LineLength:
+  Max: 120
