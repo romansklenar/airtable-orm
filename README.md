@@ -77,6 +77,7 @@ end
 - **Associations:** `has_many`/`belongs_to` readers, writers, `add_*`/`remove_*`, memoization and `Collection#preload` for eager loading.
 - **Schema:** table/field metadata from `/v0/meta/bases`, cached via `config.cache`; `Model.field_options(:state)` reads select options.
 - **`#url`** — deeplink to the record in the Airtable UI.
+- **`normalizes`** — available on ActiveModel 8.0+ (the DSL doesn't exist in 7.1).
 
 ## Errors
 

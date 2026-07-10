@@ -7,7 +7,8 @@ module Airtable
 
       included do
         include ActiveModel::Attributes
-        include ActiveModel::Attributes::Normalization
+        # The `normalizes` DSL ships with ActiveModel 8.0+; on 7.1 models simply don't have it.
+        include ActiveModel::Attributes::Normalization if defined?(ActiveModel::Attributes::Normalization)
         include ActiveModel::Dirty
 
         # Full symbol → field_id mapping from config/airtable.yml (includes ALL fields).
