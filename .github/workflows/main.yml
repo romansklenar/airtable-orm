@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+    name: Ruby ${{ matrix.ruby }} (${{ matrix.gemfile }})
     strategy:
       fail-fast: false
       matrix:
@@ -19,6 +19,15 @@ jobs:
           - '3.3'
           - '3.4'
           - '4.0'
+        gemfile:
+          - Gemfile
+        include:
+          # Oldest supported ActiveModel line — on the Rubies Rails 7.1 supports.
+          - { ruby: '3.2', gemfile: gemfiles/activemodel_7_1.gemfile }
+          - { ruby: '3.3', gemfile: gemfiles/activemodel_7_1.gemfile }
+
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
 
     steps:
       - uses: actions/checkout@v4

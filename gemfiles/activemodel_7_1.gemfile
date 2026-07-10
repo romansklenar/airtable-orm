@@ -1,0 +1,6 @@
+# frozen_string_literal: true
+
+# CI matrix leg: the oldest supported ActiveModel line (see .github/workflows/main.yml).
+eval_gemfile "../Gemfile"
+
+gem "activemodel", "~> 7.1.0"
