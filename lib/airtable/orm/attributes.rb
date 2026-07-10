@@ -71,7 +71,7 @@ module Airtable
         # @return [Hash{Symbol => Array<String>}] Field symbols mapped to option arrays
         # @example
         #   Airtable::Case.schema_options
-        #   # => { state: ["Open", "Closed"], scope: ["Dotaz", "Případ"], ... }
+        #   # => { state: ["Open", "Closed"], scope: ["Inquiry", "Claim"], ... }
         #
         # @example Accessing specific field options
         #   Airtable::Case.schema_options[:state]

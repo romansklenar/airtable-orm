@@ -12,8 +12,8 @@ class Order < Airtable::ORM::Base
   belongs_to :client, class_name: "Client", foreign_key: :client_ids
 end
 
-Order.where(formula: "AND({Stav} = 'Aktivní')").each { |order| puts order.email }
-Order.find_by(email: "jane@example.com")&.update(state: "Uzavřený")
+Order.where(formula: "AND({State} = 'Active')").each { |order| puts order.email }
+Order.find_by(email: "jane@example.com")&.update(state: "Closed")
 ```
 
 ## Installation
