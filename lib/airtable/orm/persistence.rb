@@ -17,6 +17,10 @@ module Airtable
       BATCH_SIZE = 10
       MAX_FIND_MANY_IDS = 500
 
+      # Airtable record IDs: rec + alphanumeric characters. Validated before any ID reaches
+      # a URL path or formula interpolation (injection guard).
+      RECORD_ID_FORMAT = /\Arec[a-zA-Z0-9_-]+\z/
+
       class_methods do
         # Batch update records (up to 10 per API request).
         # Triages locally: new/invalid → failed, unchanged → skipped, changed → sent.
@@ -54,8 +58,13 @@ module Airtable
           "#{full_path}?returnFieldsByFieldId=true"
         end
 
-        # Find a record by ID
+        # Find a record by ID. Rejects malformed IDs up front — an ID that can never exist
+        # must not reach the URL path (nil would hit the LIST endpoint, "recX/.." another one).
         def find(id)
+          unless id.to_s.match?(RECORD_ID_FORMAT)
+            raise Airtable::ORM::RecordNotFound, "Couldn't find record with id=#{id.inspect}"
+          end
+
           response = client.connection.get(api_path(id))
           parsed_response = response.body
 
@@ -165,11 +174,10 @@ module Airtable
         end
 
         # Validate that record IDs match Airtable's format to prevent formula injection
-        # Airtable record IDs follow the pattern: rec + alphanumeric characters
         def validate_record_ids(ids)
           ids.map do |id|
             id_str = id.to_s
-            unless id_str.match?(/\Arec[a-zA-Z0-9_-]+\z/)
+            unless id_str.match?(RECORD_ID_FORMAT)
               raise ArgumentError,
                     "Invalid Airtable record ID: #{id_str.inspect}"
             end

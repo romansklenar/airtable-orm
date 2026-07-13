@@ -55,6 +55,26 @@ RSpec.describe Airtable::ORM::Persistence do
                                                                })
   end
 
+  describe ".find" do
+    it "raises RecordNotFound for a nil ID instead of hitting the list endpoint" do
+      expect do
+        test_class.find(nil)
+      end.to raise_error(Airtable::ORM::RecordNotFound, /Couldn't find record/)
+    end
+
+    it "raises RecordNotFound for an ID that is not a valid Airtable record ID" do
+      expect do
+        test_class.find("recX/../../meta/whatever")
+      end.to raise_error(Airtable::ORM::RecordNotFound, /Couldn't find record/)
+    end
+
+    it "raises RecordNotFound for an empty string ID" do
+      expect do
+        test_class.find("")
+      end.to raise_error(Airtable::ORM::RecordNotFound, /Couldn't find record/)
+    end
+  end
+
   describe ".find_many" do
     it "returns empty array for empty input" do
       expect(test_class.find_many([])).to eq([])

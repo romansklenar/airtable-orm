@@ -346,6 +346,51 @@ RSpec.describe Airtable::ORM::Querying, :airtable do
         TestQueryModel.find_by(nonexistent_field: "value")
       end.to raise_error(ArgumentError, /Unknown field.*nonexistent_field/)
     end
+
+    it "rejects string field names containing braces to prevent formula injection" do
+      expect do
+        TestQueryModel.find_by("Email} != BLANK()), OR({Email" => "x")
+      end.to raise_error(ArgumentError, /Invalid field reference/)
+    end
+
+    it "accepts string field IDs as condition keys" do
+      stub_list_records(
+        records: [],
+        request_matcher: lambda { |request|
+          body = JSON.parse(request.body)
+          body["filterByFormula"] == "{#{EMAIL_FIELD_ID}} = 'test@example.com'"
+        }
+      )
+
+      TestQueryModel.find_by(EMAIL_FIELD_ID => "test@example.com")
+    end
+  end
+
+  describe ".format_formula_value" do
+    it "formats a DateTime as UTC" do
+      value = DateTime.new(2026, 7, 11, 10, 0, 0, "+02:00")
+      expect(TestQueryModel.format_formula_value(value)).to eq("'2026-07-11T08:00:00Z'")
+    end
+
+    it "formats a Time as UTC without mutating the caller's object" do
+      value = Time.new(2026, 7, 11, 10, 0, 0, "+02:00")
+      expect(TestQueryModel.format_formula_value(value)).to eq("'2026-07-11T08:00:00Z'")
+      expect(value.utc_offset).to eq(7200)
+    end
+
+    it "formats a Date as a date literal" do
+      expect(TestQueryModel.format_formula_value(Date.new(2026, 7, 11))).to eq("'2026-07-11'")
+    end
+
+    it "preserves control characters in string values" do
+      # Airtable formula string literals have no escape sequences for control
+      # characters — a literal backslash+n would never match a real newline.
+      expect(TestQueryModel.format_formula_value("line1\nline2\tend")).to eq("'line1\nline2\tend'")
+    end
+
+    it "escapes single quotes and backslashes" do
+      expect(TestQueryModel.format_formula_value("O'Brien \\ Co")).to eq("'O\\'Brien \\\\ Co'")
+    end
   end
 
   describe ".find_by!" do
@@ -504,6 +549,18 @@ RSpec.describe Airtable::ORM::Querying, :airtable do
       TestQueryModel.all(sort: nil)
     end
 
+    it "raises ArgumentError for a sort that is not a Hash or Array" do
+      expect do
+        TestQueryModel.all(sort: :email)
+      end.to raise_error(ArgumentError, /sort must be a Hash or Array/)
+    end
+
+    it "raises ArgumentError when last() gets a sort that is not a Hash or Array" do
+      expect do
+        TestQueryModel.last(sort: :email)
+      end.to raise_error(ArgumentError, /sort must be a Hash or Array/)
+    end
+
     it "handles empty hash sort" do
       stub_list_records(
         records: [],
@@ -570,6 +627,7 @@ RSpec.describe Airtable::ORM::Querying, :airtable do
         TestQueryModel.all
       end.to raise_error(Airtable::ORM::ApiError, /Table not found/)
     end
+
   end
 
   # Helper to stub list records API call
