@@ -103,7 +103,13 @@ module Airtable
           define_method(association_name) do
             memoize_association(association_name) do
               id = read_linked_ids(foreign_key).first
-              id ? class_name.constantize.find(id) : nil
+              begin
+                id ? class_name.constantize.find(id) : nil
+              rescue Airtable::ORM::RecordNotFound
+                # A stale link to a deleted record reads as nil, matching the preloaded
+                # path (find_many simply omits missing records).
+                nil
+              end
             end
           end
 

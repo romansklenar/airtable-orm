@@ -329,6 +329,15 @@ RSpec.describe Airtable::ORM::Associations, :airtable do
         expect(result1).to be_nil
         expect(result2).to be_nil
       end
+
+      it "returns nil when the linked record no longer exists (same contract as preload)" do
+        child.write_raw_attribute(:client_ids, ["recParentGone"])
+
+        expect(TestParentModel).to receive(:find).with("recParentGone")
+                                                 .and_raise(Airtable::ORM::RecordNotFound, "Couldn't find record")
+
+        expect(child.parent).to be_nil
+      end
     end
 
     describe "setter" do
