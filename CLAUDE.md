@@ -48,10 +48,13 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
 - 5 requests/second per base, throttled for 30 s when exceeded → `Http::RateLimiter` (client-side
   sliding window) + `config.rate_limit` default 5 (a hard Airtable limit, not host tuning).
 - Batch PATCH takes at most 10 records (`Persistence::BATCH_SIZE`).
-- `find_many` builds an OR formula — capped at 500 IDs (`MAX_FIND_MANY_IDS`).
+- `find_many` builds an OR formula — capped at 500 IDs (`MAX_FIND_MANY_IDS`); associations and
+  `preload` slice larger ID lists to the cap (`Associations.fetch_linked_records`).
 - `createdTime` is ISO-8601 UTC → parsed with `Time.iso8601` (nil-guarded at both parse sites);
   `Time.zone` doesn't exist outside Rails.
-- Record IDs match `\Arec[a-zA-Z0-9_-]+\z` — validated before formula interpolation (injection guard).
+- Record IDs match `\Arec[a-zA-Z0-9_-]+\z` (`Persistence::RECORD_ID_FORMAT`) — validated before
+  formula interpolation (`find_many`) and URL-path interpolation (`find`) as an injection guard;
+  field references interpolated into `{...}` in formulas must not contain braces (`find_by`).
 
 ## Testing conventions
 
