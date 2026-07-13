@@ -5,6 +5,14 @@ module Airtable
     module Associations
       extend ActiveSupport::Concern
 
+      # Fetch linked records via find_many, slicing to its per-request ID cap so an
+      # association (or preload union) with more links than the cap still loads.
+      def self.fetch_linked_records(klass, ids)
+        records = ids.each_slice(Airtable::ORM::Persistence::MAX_FIND_MANY_IDS)
+                     .flat_map { |slice| klass.find_many(slice).to_a }
+        Airtable::ORM::Collection.new(records, model_class: klass)
+      end
+
       # Requires Attributes concern. Uses read_raw_attribute/write_raw_attribute to
       # bypass accessors and avoid infinite recursion when association names match attributes.
 
@@ -57,7 +65,11 @@ module Airtable
             memoize_association(association_name) do
               ids = read_linked_ids(foreign_key)
               klass = class_name.constantize
-              ids.empty? ? Airtable::ORM::Collection.new([], model_class: klass) : klass.find_many(ids)
+              if ids.empty?
+                Airtable::ORM::Collection.new([], model_class: klass)
+              else
+                Airtable::ORM::Associations.fetch_linked_records(klass, ids)
+              end
             end
           end
 
@@ -135,7 +147,12 @@ module Airtable
                       records.filter_map { |r| r.send(:read_linked_ids, foreign_key).first }.uniq
                     end
 
-          fetched_by_id = all_ids.empty? ? {} : klass.find_many(all_ids).index_by(&:id)
+          fetched_by_id =
+            if all_ids.empty?
+              {}
+            else
+              Airtable::ORM::Associations.fetch_linked_records(klass, all_ids).index_by(&:id)
+            end
 
           records.each do |record|
             ids = record.send(:read_linked_ids, foreign_key)

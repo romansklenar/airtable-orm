@@ -267,6 +267,14 @@ RSpec.describe Airtable::ORM::Base, :airtable do
         expect(schema).to be_a(Hash)
         expect(schema).to have_key(:fields)
       end
+
+      it "raises ConfigurationError when the table is missing from the fetched schema" do
+        allow(Airtable::ORM::Schema).to receive(:fetch).and_return({})
+
+        expect do
+          TestAirtableModel.schema
+        end.to raise_error(Airtable::ORM::ConfigurationError, /client/)
+      end
     end
 
     describe ".field_schema" do

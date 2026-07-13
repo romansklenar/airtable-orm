@@ -14,6 +14,10 @@ module Airtable
     # Raised when an invalid attribute is provided
     class InvalidAttributeError < Error; end
 
+    # Raised when the host configuration doesn't match the Airtable base
+    # (e.g. a configured table ID absent from the fetched schema)
+    class ConfigurationError < Error; end
+
     # Raised when a record fails validation.
     # Use the #record method to retrieve the record which did not validate.
     class RecordInvalid < Error

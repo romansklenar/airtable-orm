@@ -114,7 +114,15 @@ module Airtable
 
             Airtable::ORM::Http::Client.raise_api_error(response.status, parsed_response) unless response.success?
 
-            yield parsed_response["records"]
+            records = parsed_response.is_a?(Hash) ? parsed_response["records"] : nil
+            unless records.is_a?(Array)
+              raise Airtable::ORM::ApiError.new(
+                "Malformed Airtable response: expected a records array (HTTP #{response.status})",
+                status: response.status, response: parsed_response
+              )
+            end
+
+            yield records
 
             break unless paginate && parsed_response["offset"]
 

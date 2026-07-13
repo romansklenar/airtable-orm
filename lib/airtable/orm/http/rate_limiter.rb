@@ -13,11 +13,7 @@ module Airtable
         end
 
         def call(env)
-          @mutex.synchronize do
-            wait if too_many_requests_in_last_second?
-            @requests << Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            @requests.shift if @rps && @requests.size > @rps
-          end
+          throttle if @rps
           @app.call(env)
         end
 
@@ -27,20 +23,33 @@ module Airtable
 
         private
 
-        def too_many_requests_in_last_second?
-          return false unless @rps
-          return false unless @requests.size >= @rps
+        # Compute the wait under the lock but sleep outside it, so a throttled thread
+        # doesn't serialize every other thread's request behind its sleep.
+        def throttle
+          wait_time = @mutex.synchronize do
+            now = monotonic_now
+            prune(now)
+            1.0 - (now - @requests.first) if @requests.size >= @rps
+          end
 
-          window_span < 1.0
+          @sleeper.call(wait_time) if wait_time&.positive?
+
+          @mutex.synchronize do
+            now = monotonic_now
+            prune(now)
+            @requests << now
+            @requests.shift while @requests.size > @rps
+          end
         end
 
-        def wait
-          wait_time = 1.0 - window_span
-          @sleeper.call(wait_time)
+        # Drop timestamps that fell out of the 1-second sliding window — without this,
+        # a full window recorded before an idle period would throttle the next request.
+        def prune(now)
+          @requests.shift while @requests.any? && now - @requests.first >= 1.0
         end
 
-        def window_span
-          @requests.last - @requests.first
+        def monotonic_now
+          Process.clock_gettime(Process::CLOCK_MONOTONIC)
         end
       end
     end

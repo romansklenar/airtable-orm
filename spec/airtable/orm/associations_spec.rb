@@ -421,6 +421,45 @@ RSpec.describe Airtable::ORM::Associations, :airtable do
     end
   end
 
+  describe "find_many cap slicing" do
+    let(:parent) do
+      create_persisted_record(TestParentModel, id: "recParent1", attributes: { email: "parent@example.com" })
+    end
+
+    # Stub find_many to echo back records for whatever slice it gets, recording slice sizes.
+    def stub_sliced_find_many
+      calls = []
+      allow(TestChildModel).to receive(:find_many) do |slice|
+        calls << slice.size
+        slice.map { |id| create_persisted_record(TestChildModel, id: id) }
+      end
+      calls
+    end
+
+    it "slices has_many reader ID lists above the find_many cap into multiple requests" do
+      ids = (1..501).map { |i| format("recChild%03d", i) }
+      parent.write_raw_attribute(:case_ids, ids)
+      calls = stub_sliced_find_many
+
+      children = parent.children
+
+      expect(calls).to eq([500, 1])
+      expect(children.size).to eq(501)
+      expect(children).to be_a(Airtable::ORM::Collection)
+    end
+
+    it "slices preload ID unions above the find_many cap into multiple requests" do
+      ids = (1..501).map { |i| format("recChild%03d", i) }
+      parent.write_raw_attribute(:case_ids, ids)
+      calls = stub_sliced_find_many
+
+      TestParentModel.preload([parent], :children)
+
+      expect(calls).to eq([500, 1])
+      expect(parent.children.size).to eq(501)
+    end
+  end
+
   describe ".preload" do
     let(:child1) { create_persisted_record(TestChildModel, id: "recChild1", attributes: { label: "Child 1" }) }
     let(:child2) { create_persisted_record(TestChildModel, id: "recChild2", attributes: { label: "Child 2" }) }

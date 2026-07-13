@@ -62,6 +62,32 @@ RSpec.describe Airtable::ORM::Http::RateLimiter do
 
       expect(tracked_requests.size).to eq(@rps)
     end
+
+    it "does not sleep when the tracked window is older than one second" do
+      @rps.times { @connection.get("/whatever") }
+      aged = tracked_requests.map { |t| t - 10 }
+      rate_limiter.instance_variable_set(:@requests, aged)
+
+      @connection.get("/whatever")
+
+      expect(@sleeps).to be_empty
+    end
+
+    it "sleeps outside the mutex so other threads' requests are not blocked" do
+      connection = nil
+      locked_during_sleep = nil
+      sleeper = lambda do |_seconds|
+        locked_during_sleep = connection.app.instance_variable_get(:@mutex).locked?
+      end
+      connection = Faraday.new do |builder|
+        builder.request :airtable_rate_limiter, requests_per_second: 2, sleeper: sleeper
+        builder.adapter :test, @stubs
+      end
+
+      3.times { connection.get("/whatever") }
+
+      expect(locked_during_sleep).to be(false)
+    end
   end
 
   describe "thread safety" do

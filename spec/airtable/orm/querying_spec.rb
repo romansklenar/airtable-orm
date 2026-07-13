@@ -628,6 +628,25 @@ RSpec.describe Airtable::ORM::Querying, :airtable do
       end.to raise_error(Airtable::ORM::ApiError, /Table not found/)
     end
 
+    it "raises ApiError when a 2xx response body is not JSON" do
+      @stubs.post("/v0/appVntahBV9Q4evA7/tbl8MkbTpROqjERoD/listRecords") do
+        [200, { "Content-Type" => "text/html" }, "<html>maintenance</html>"]
+      end
+
+      expect do
+        TestQueryModel.all
+      end.to raise_error(Airtable::ORM::ApiError, /Malformed Airtable response/)
+    end
+
+    it "raises ApiError when a 2xx response has no records array" do
+      @stubs.post("/v0/appVntahBV9Q4evA7/tbl8MkbTpROqjERoD/listRecords") do
+        [200, { "Content-Type" => "application/json" }, {}.to_json]
+      end
+
+      expect do
+        TestQueryModel.all
+      end.to raise_error(Airtable::ORM::ApiError, /Malformed Airtable response/)
+    end
   end
 
   # Helper to stub list records API call

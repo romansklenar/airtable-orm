@@ -47,7 +47,11 @@ module Airtable
         def schema
           return {} unless table_name
 
-          @schema ||= Airtable::ORM::Schema.fetch(base_id)[table_id]
+          @schema ||= Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
+            Airtable::ORM::ConfigurationError,
+            "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
+            "#{base_id.inspect} — check config.tables against the Airtable base"
+          )
         end
 
         # Clear the memoized schema cache
