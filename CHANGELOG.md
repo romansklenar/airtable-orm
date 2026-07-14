@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-14
+
+Hardening release from a deep code review of the whole gem. Minor (not patch) because a few
+observable contracts changed — see Changed below.
+
 ### Fixed
 
 - `find_by` validates field references before formula interpolation — a string key containing
