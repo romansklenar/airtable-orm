@@ -29,6 +29,10 @@ module Airtable
 
       def configure
         yield config
+      ensure
+        # The client memoizes api_key/timeouts/rate_limit at first request — without this
+        # reset a later configure (e.g. rotating the API key) would be silently ignored.
+        Http::Client.reset!
       end
 
       # True when an API key is configured — hosts gate network-touching hooks on this.

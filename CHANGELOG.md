@@ -19,6 +19,9 @@
   instead of `NoMethodError` deep inside `where`/`count`.
 - `preload` and `has_many` readers slice linked-ID lists to the `find_many` per-request cap
   (500), so associations with more links load instead of raising `ArgumentError`.
+- `Airtable::ORM.configure` invalidates the memoized HTTP client, so reconfiguring after the
+  first request (e.g. rotating the API key or changing timeouts) takes effect instead of being
+  silently ignored.
 
 ### Changed
 
