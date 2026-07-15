@@ -1,5 +1,19 @@
 ## [Unreleased]
 
+### Fixed
+
+- The schema cache stores the full base schema instead of only the tables configured at fetch
+  time — a table added to `config.tables` after the cache warmed up (24 h expiry, shared store
+  in Rails hosts) now resolves immediately instead of raising `ConfigurationError` until expiry.
+
+### Changed
+
+- Record payloads are parsed by string keys directly instead of deep-converting every record
+  with `with_indifferent_access` — one avoided deep copy per record on `where`/`all`/`find`,
+  two per record on batch updates. The (undocumented) `instantiate_from_api_response` and
+  `apply_response_fields` now expect string-keyed parsed payloads; `createdTime` parsing lives
+  in the single `Persistence.parse_created_time` helper.
+
 ## [0.2.0] - 2026-07-14
 
 Hardening release from a deep code review of the whole gem. Minor (not patch) because a few

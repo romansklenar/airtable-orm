@@ -111,19 +111,26 @@ module Airtable
           record
         end
 
-        # Instantiate a record from API response
+        # Instantiate a record from a parsed API payload. Expects string keys (the shape the
+        # JSON middleware produces) — this runs once per record on every where/all/find, so no
+        # per-record deep conversion here.
         def instantiate_from_api_response(response)
-          data = response.with_indifferent_access
-          symbol_attrs = fields_to_symbol_attributes(data[:fields])
-
-          record = new(**symbol_attrs)
+          record = new(**fields_to_symbol_attributes(response["fields"]))
           record.send(:assign_persistence_state,
-                      id: data[:id],
-                      created_at: data[:createdTime] ? Time.iso8601(data[:createdTime].to_s) : nil,
+                      id: response["id"],
+                      created_at: parse_created_time(response),
                       persisted: true)
           record.clear_changes_information
 
           record
+        end
+
+        # @api private — createdTime is ISO-8601 UTC, parsed with Time.iso8601 (Time.zone
+        # doesn't exist outside Rails); nil-guarded. The single parse site for both
+        # instantiate_from_api_response and #apply_response_fields.
+        def parse_created_time(data)
+          created_time = data["createdTime"]
+          created_time ? Time.iso8601(created_time.to_s) : nil
         end
 
         # Convert API field IDs to symbol attributes.
@@ -148,9 +155,8 @@ module Airtable
           parsed = response.body
 
           if response.success?
-            parsed = parsed.with_indifferent_access if parsed.is_a?(Hash)
-            response_records = parsed[:records] || []
-            response_by_id = response_records.index_by { |r| r[:id] }
+            response_records = (parsed.is_a?(Hash) && parsed["records"]) || []
+            response_by_id = response_records.index_by { |r| r["id"] }
 
             batch.each do |record|
               record_data = response_by_id[record.id]
@@ -163,7 +169,7 @@ module Airtable
             end
           else
             batch.each { |record| result.failed << record }
-            error_message = parsed.is_a?(Hash) ? parsed.with_indifferent_access.dig(:error, :message) : parsed
+            error_message = parsed.is_a?(Hash) ? parsed.dig("error", "message") : parsed
             ORM.config.logger.error(
               "Airtable batch update failed: HTTP #{response.status}: #{error_message.to_s.truncate(200)}"
             )
@@ -312,13 +318,12 @@ module Airtable
       def apply_response_fields(data)
         @previously_new_record = new_record?
 
-        data = data.with_indifferent_access
-        symbol_attrs = self.class.fields_to_symbol_attributes(data[:fields])
+        symbol_attrs = self.class.fields_to_symbol_attributes(data["fields"])
         symbol_attrs.each { |key, value| write_raw_attribute(key, value) }
 
         assign_persistence_state(
-          id: data[:id],
-          created_at: data[:createdTime] ? Time.iso8601(data[:createdTime].to_s) : nil,
+          id: data["id"],
+          created_at: self.class.parse_created_time(data),
           persisted: true
         )
         changes_applied

@@ -50,8 +50,9 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
 - Batch PATCH takes at most 10 records (`Persistence::BATCH_SIZE`).
 - `find_many` builds an OR formula — capped at 500 IDs (`MAX_FIND_MANY_IDS`); associations and
   `preload` slice larger ID lists to the cap (`Associations.fetch_linked_records`).
-- `createdTime` is ISO-8601 UTC → parsed with `Time.iso8601` (nil-guarded at both parse sites);
-  `Time.zone` doesn't exist outside Rails.
+- `createdTime` is ISO-8601 UTC → parsed in the single nil-guarded `Persistence.parse_created_time`
+  helper; `Time.zone` doesn't exist outside Rails. Record payloads are read by STRING keys (the
+  parsed-JSON shape) — no per-record `with_indifferent_access` on the hot path; keep it that way.
 - Record IDs match `\Arec[a-zA-Z0-9_-]+\z` (`Persistence::RECORD_ID_FORMAT`) — validated before
   formula interpolation (`find_many`) and URL-path interpolation (`find`) as an injection guard;
   field references interpolated into `{...}` in formulas must not contain braces (`find_by`).
