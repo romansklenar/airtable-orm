@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-15
+
 ### Fixed
 
 - The schema cache stores the full base schema instead of only the tables configured at fetch
