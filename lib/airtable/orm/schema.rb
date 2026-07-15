@@ -19,10 +19,6 @@ module Airtable
 
         private
 
-        def required_table_ids
-          ORM.config.table_ids
-        end
-
         def fetch_from_api(base_id)
           response = client.connection.get("/v0/meta/bases/#{base_id}/tables")
           parsed_response = response.body
@@ -34,11 +30,12 @@ module Airtable
           end
         end
 
+        # Index the FULL base schema — no filtering by the tables configured at fetch time.
+        # The cached payload outlives the config (24h, shared store in Rails hosts), so a
+        # fetch-time filter would hide tables added to config after the cache warmed up.
+        # Reads are keyed lookups (fetch(base_id)[table_id]), so no read-time filter is needed.
         def indexed_schema(parsed_response)
           tables = parsed_response.deep_symbolize_keys[:tables]
-
-          # Filter only required tables
-          tables.select! { |table| required_table_ids.include?(table[:id]) }
 
           # Transform fields into hash indexed by field id
           tables.each do |table|
