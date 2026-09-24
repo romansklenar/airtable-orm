@@ -1,5 +1,19 @@
 ## [Unreleased]
 
+## [0.2.2] - 2026-09-24
+
+### Fixed
+
+- `find` raises `RecordNotFound` for a deleted/nonexistent record ID. Airtable answers such a
+  GET with `403 INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND`, not 404, so it used to surface as a
+  plain `ApiError`. Because a revoked token or lost table permission returns the same 403, `find`
+  now disambiguates with one probe of the table (a one-record, no-fields list request): readable
+  → `RecordNotFound`, otherwise the original `ApiError` is re-raised; a `ConnectionError` during
+  the probe propagates. The 404 mapping is unchanged. `reload` and `belongs_to` (which reads a
+  stale link as `nil`) benefit accordingly.
+- `ApiError` is raised (instead of a `TypeError`) for Airtable's bare string error body such as
+  `{"error": "NOT_FOUND"}`, which previously broke the 404 → `RecordNotFound` mapping in `find`.
+
 ## [0.2.1] - 2026-07-15
 
 ### Fixed
