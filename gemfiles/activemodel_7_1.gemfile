@@ -4,3 +4,8 @@
 eval_gemfile "../Gemfile"
 
 gem "activemodel", "~> 7.1.0"
+
+# json 3.0 dropped the `quirks_mode` generator option that ActiveSupport 7.1's JSON encoder
+# still passes, so every `Object#to_json` raises ArgumentError under 7.1 — a Rails 7.1 host
+# needs this same pin. Not a gem-level constraint: the lib itself encodes via JSON.generate.
+gem "json", "< 3"
