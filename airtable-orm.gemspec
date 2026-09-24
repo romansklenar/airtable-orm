@@ -28,7 +28,9 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activemodel", ">= 7.1", "< 9"
-  spec.add_dependency "faraday", "~> 2.9"
+  # 2.14.4 floor: older Faraday's JSON response middleware breaks on json 3.0 (every
+  # response raises Faraday::ParsingError), and json is resolved by the host, not us.
+  spec.add_dependency "faraday", "~> 2.14", ">= 2.14.4"
   spec.add_dependency "faraday-net_http_persistent", "~> 2.0"
   spec.add_dependency "zeitwerk", "~> 2.6"
 end
