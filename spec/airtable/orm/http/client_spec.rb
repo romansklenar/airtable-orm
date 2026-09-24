@@ -50,6 +50,28 @@ RSpec.describe Airtable::ORM::Http::Client do
     end
   end
 
+  describe ".raise_api_error" do
+    it "reads type and message from a structured error body" do
+      body = { "error" => { "type" => "INVALID_REQUEST_UNKNOWN", "message" => "Bad field" } }
+
+      expect { described_class.raise_api_error(422, body) }.to raise_error(Airtable::ORM::ApiError) { |error|
+        expect(error.message).to eq("HTTP 422: INVALID_REQUEST_UNKNOWN: Bad field")
+        expect(error.status).to eq(422)
+        expect(error.response).to eq(body)
+      }
+    end
+
+    it "handles Airtable's bare string error body" do
+      expect { described_class.raise_api_error(404, { "error" => "NOT_FOUND" }) }
+        .to raise_error(Airtable::ORM::ApiError, "HTTP 404: NOT_FOUND: ")
+    end
+
+    it "handles an unparseable body" do
+      expect { described_class.raise_api_error(502, nil) }
+        .to raise_error(Airtable::ORM::ApiError, /HTTP 502: Communication error: invalid or empty response body/)
+    end
+  end
+
   describe "rate limiting integration" do
     it "applies rate limiting to requests" do
       stubs = Faraday::Adapter::Test::Stubs.new

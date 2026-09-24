@@ -66,11 +66,13 @@ module Airtable
           ERB::Util.url_encode(string)
         end
 
-        # Parse an Airtable API error response and raise an ApiError.
+        # Parse an Airtable API error response and raise an ApiError. Airtable sends either
+        # {"error" => {"type", "message"}} or a bare {"error" => "NOT_FOUND"} (e.g. on 404).
         def self.raise_api_error(status, error)
-          type = (error.is_a?(Hash) && error.dig("error", "type")) || "Communication error"
+          detail = error.is_a?(Hash) ? error["error"] : nil
+          type = (detail.is_a?(Hash) ? detail["type"] : detail) || "Communication error"
           msg = case error
-                when Hash then error.dig("error", "message")
+                when Hash then detail.is_a?(Hash) ? detail["message"] : nil
                 when String then error
                 when NilClass then "invalid or empty response body (not valid JSON)"
                 else error.inspect
