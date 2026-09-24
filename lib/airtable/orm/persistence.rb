@@ -74,7 +74,9 @@ module Airtable
             Airtable::ORM::Http::Client.raise_api_error(response.status, parsed_response)
           end
         rescue Airtable::ORM::ApiError => e
-          raise Airtable::ORM::RecordNotFound, "Couldn't find record with id=#{id}" if e.status == 404
+          if e.status == 404 || (missing_record_forbidden?(e) && table_readable?)
+            raise Airtable::ORM::RecordNotFound, "Couldn't find record with id=#{id}"
+          end
 
           raise
         end
@@ -144,6 +146,22 @@ module Airtable
         end
 
         private
+
+        # Airtable answers a GET for a nonexistent (e.g. deleted) record ID with this 403, not
+        # 404 — the same response a token without access to the table/base gets.
+        def missing_record_forbidden?(error)
+          error.status == 403 && error.response.is_a?(Hash) &&
+            error.response.dig("error", "type") == "INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND"
+        end
+
+        # Disambiguates that 403 with one cheap list request (one record, no fields): readable
+        # table → the record is gone. Never map the 403 blindly — a revoked token or lost
+        # permission would then look like "every record deleted" to the host. A ConnectionError
+        # still propagates (retryable, not evidence either way).
+        def table_readable?
+          response = client.connection.post(api_path("listRecords"), { maxRecords: 1, fields: [] })
+          response.success?
+        end
 
         # Send a single batch PATCH request to Airtable.
         def send_batch_update(batch, result)

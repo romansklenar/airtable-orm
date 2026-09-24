@@ -73,6 +73,68 @@ RSpec.describe Airtable::ORM::Persistence do
         test_class.find("")
       end.to raise_error(Airtable::ORM::RecordNotFound, /Couldn't find record/)
     end
+
+    context "when the API rejects the record ID" do
+      let(:connection) { instance_double(Faraday::Connection) }
+      let(:record_id) { "recAAAAAAAAAAAAAA" }
+      let(:forbidden_body) do
+        { "error" => { "type" => "INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND",
+                       "message" => "Invalid permissions, or the requested model was not found." } }
+      end
+
+      before do
+        client = instance_double(Airtable::ORM::Http::Client, connection: connection)
+        allow(client).to receive(:escape).and_return(table_id)
+        allow(test_class).to receive(:client).and_return(client)
+      end
+
+      def response(status, body)
+        instance_double(Faraday::Response, success?: status < 400, status: status, body: body)
+      end
+
+      it "raises RecordNotFound on 404 without probing the table" do
+        allow(connection).to receive(:get).and_return(response(404, { "error" => "NOT_FOUND" }))
+        expect(connection).not_to receive(:post)
+
+        expect { test_class.find(record_id) }
+          .to raise_error(Airtable::ORM::RecordNotFound, /id=#{record_id}/)
+      end
+
+      it "raises RecordNotFound on the missing-record 403 when the table is readable" do
+        allow(connection).to receive(:get).and_return(response(403, forbidden_body))
+        expect(connection).to receive(:post)
+          .with("/v0/#{base_id}/#{table_id}/listRecords?returnFieldsByFieldId=true", { maxRecords: 1, fields: [] })
+          .and_return(response(200, { "records" => [] }))
+
+        expect { test_class.find(record_id) }
+          .to raise_error(Airtable::ORM::RecordNotFound, /id=#{record_id}/)
+      end
+
+      it "re-raises the original ApiError on 403 when the table is not readable either" do
+        allow(connection).to receive_messages(get: response(403, forbidden_body), post: response(403, forbidden_body))
+
+        expect { test_class.find(record_id) }.to raise_error(Airtable::ORM::ApiError) { |error|
+          expect(error).not_to be_a(Airtable::ORM::RecordNotFound)
+          expect(error.status).to eq(403)
+          expect(error.message).to include("INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND")
+        }
+      end
+
+      it "lets a ConnectionError during the probe propagate" do
+        allow(connection).to receive(:get).and_return(response(403, forbidden_body))
+        allow(connection).to receive(:post).and_raise(Airtable::ORM::ConnectionError, "timeout")
+
+        expect { test_class.find(record_id) }.to raise_error(Airtable::ORM::ConnectionError)
+      end
+
+      it "re-raises other 403s without probing the table" do
+        body = { "error" => { "type" => "NOT_AUTHORIZED", "message" => "nope" } }
+        allow(connection).to receive(:get).and_return(response(403, body))
+        expect(connection).not_to receive(:post)
+
+        expect { test_class.find(record_id) }.to raise_error(Airtable::ORM::ApiError, /NOT_AUTHORIZED/)
+      end
+    end
   end
 
   describe ".find_many" do
