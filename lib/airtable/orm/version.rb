@@ -2,6 +2,6 @@
 
 module Airtable
   module ORM
-    VERSION = "0.2.2"
+    VERSION = "0.2.3"
   end
 end

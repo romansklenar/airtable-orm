@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-24
+
+### Fixed
+
+- Require `faraday >= 2.14.4` (was `~> 2.9`). Older Faraday releases can't parse responses
+  once the host resolves json 3.0 (released 2026-09-09): every request raises
+  `Faraday::ParsingError: wrong number of arguments`. This affects every earlier airtable-orm
+  release, which all allowed any Faraday 2.9+.
+
 ## [0.2.2] - 2026-09-24
 
 ### Fixed
