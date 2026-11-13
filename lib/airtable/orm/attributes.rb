@@ -42,22 +42,30 @@ module Airtable
           ORM.config.table_id(table_name)
         end
 
-        # Get schema for this table
-        # Memoized at class level to avoid repeated cache lookups
+        # Get schema for this table.
+        # Memoized per class for config.schema_memo_ttl seconds (monotonic clock), then re-read
+        # from the shared cache store via Schema.fetch — which hits /v0/meta only on a store
+        # miss — so a schema change or Schema.clear_cache reaches long-running processes without
+        # a restart. The [schema, loaded_at] pair lives in ONE ivar, assigned in one step, so a
+        # concurrent reader never pairs a new schema with an old timestamp (or vice versa).
         def schema
           return {} unless table_name
 
-          @schema ||= Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
-            Airtable::ORM::ConfigurationError,
-            "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
-            "#{base_id.inspect} — check config.tables against the Airtable base"
-          )
+          ttl = ORM.config.schema_memo_ttl
+          return fetch_table_schema unless ttl&.positive?
+
+          now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          memo = @schema_memo
+          return memo.first if memo && now - memo.last < ttl
+
+          fetch_table_schema.tap { |table_schema| @schema_memo = [table_schema, now].freeze }
         end
 
-        # Clear the memoized schema cache
-        # Useful for testing or when the schema changes
+        # Clear the memoized schema in THIS process only (for this class). To make every process
+        # see a changed Airtable schema, call Schema.clear_cache(base_id) — each process then
+        # picks it up once its config.schema_memo_ttl elapses.
         def clear_schema_cache
-          @schema = nil
+          @schema_memo = nil
           @field_mapping = nil
         end
 
@@ -112,6 +120,14 @@ module Airtable
         def define_field_mapping
           fields = ORM.config.table_fields(table_name)
           self.config_field_mapping = fields&.except(:_id) || {}
+        end
+
+        def fetch_table_schema
+          Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
+            Airtable::ORM::ConfigurationError,
+            "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
+            "#{base_id.inspect} — check config.tables against the Airtable base"
+          )
         end
       end
 

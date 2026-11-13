@@ -10,7 +10,8 @@ module Airtable
     class Configuration
       attr_accessor :api_key, :base_id, :tables, :api_url,
                     :open_timeout, :read_timeout, :rate_limit,
-                    :logger, :http_logger, :cache
+                    :logger, :http_logger, :cache,
+                    :schema_cache_expiry, :schema_memo_ttl
 
       def initialize
         @tables = {}
@@ -21,6 +22,11 @@ module Airtable
         @logger = Logger.new(IO::NULL)
         @http_logger = nil             # set to a Logger to enable Faraday request logging
         @cache = MemoryCache.new       # schema cache default; hosts inject Rails.cache
+        # How long the base schema lives in the shared `cache` store before /v0/meta is re-read.
+        @schema_cache_expiry = 24.hours
+        # How long each process trusts its in-memory copy of a model's schema before re-reading
+        # the shared `cache` store (not the API). nil/0 disables the in-process memo entirely.
+        @schema_memo_ttl = 300
       end
 
       # Example: table_fields(:case) => { _id: "id", advisors: "fldgU5KU1qlN8eJ3v", ... }

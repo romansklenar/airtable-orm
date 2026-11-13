@@ -1,5 +1,24 @@
 ## [Unreleased]
 
+## [0.2.4] - 2026-11-13
+
+### Fixed
+
+- A model's schema memo now expires: `Model.schema` re-reads the shared `config.cache` store
+  after `config.schema_memo_ttl` (default 300 s; `nil`/`0` disables the memo). Previously the
+  class-level memo lived for the whole process, so `Schema.clear_cache` and store expiry never
+  reached running processes — a new single-select option stayed invisible (and was blanked by
+  `coerce_option` / rejected by `inclusion: field_options(...)` validations) until a restart.
+  `/v0/meta` is still called only on a shared-store miss.
+
+### Added
+
+- `config.schema_cache_expiry` (default `24.hours`, the previous hard-coded value) sets how long
+  the schema lives in the shared store. `Schema::CACHE_EXPIRY` is deprecated and no longer read.
+- ActiveSupport cache stores receive `race_condition_ttl: 30.seconds` on the schema fetch, so an
+  expiring entry is refetched by one process instead of all of them. The built-in `MemoryCache`
+  and other non-ActiveSupport stores still get only `:expires_in`.
+
 ## [0.2.3] - 2026-09-24
 
 ### Fixed
