@@ -7,7 +7,8 @@ change observable behaviour and new public configuration is added — see Change
 
 ### Fixed
 
-- Schema changes now reach running processes without a restart. The per-model memo used to live
+- Schema changes now reach running processes without a restart (other processes need a shared
+  `config.cache`, e.g. `Rails.cache`). The per-model memo used to live
   for the whole process, so neither `Schema.clear_cache` nor store expiry reached running puma or
   worker processes: a new single-select option stayed invisible (and failed
   `inclusion: field_options(...)` validations) until a restart.
@@ -19,7 +20,8 @@ change observable behaviour and new public configuration is added — see Change
   `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; `/v0/meta` is still called only
   on a store miss.
 - If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
-  copy, logs a warning to `config.logger` and retries after 30 seconds. Without a copy the error
+  copy, logs a warning to `config.logger` and retries after 30 seconds (or the TTL, if shorter).
+  Without a copy the error
   is raised. `fetch(force_refresh: true)` raises on failure, leaving the copy as the fallback.
 - `Schema.clear_cache(base_id)` also expires this process's memo, so the next read reloads (the
   copy stays as the outage fallback); with a shared store, every other process follows within the

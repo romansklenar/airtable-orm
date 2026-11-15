@@ -15,8 +15,9 @@ module Airtable
 
       class << self
         # Indexed base schema: the per-process memo (config.schema_memo_ttl), then the cache store
-        # (config.schema_cache_expiry), then /v0/meta. force_refresh clears both and refetches; it
-        # raises on failure, while the memo keeps its copy as the outage fallback.
+        # (config.schema_cache_expiry), then /v0/meta. force_refresh deletes the store entry,
+        # expires the memo and refetches; it raises on failure, leaving the memo's copy as the
+        # outage fallback.
         def fetch(base_id, force_refresh: false)
           base_id = base_id.to_s
           memo = memo_for(base_id)

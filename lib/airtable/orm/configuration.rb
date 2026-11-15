@@ -44,7 +44,7 @@ module Airtable
       # API on every Schema.fetch (and burn the 5 RPS budget on metadata). Hosts inject a real
       # store (Rails.cache); this one honours only :expires_in. The mutex is held across the
       # fetch block (all keys serialize behind it, and nesting fetch calls would deadlock) —
-      # fine for the rare schema refresh this exists for.
+      # fine, since nothing fetches from inside the schema fetch block.
       class MemoryCache
         def initialize
           @mutex = Mutex.new

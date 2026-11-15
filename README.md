@@ -96,7 +96,7 @@ The base schema (tables, fields, select options) is cached on two levels, both k
 After changing the schema in Airtable (e.g. a new single-select option), call
 `Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)` to
 refetch right away (it raises if Airtable is unreachable). The calling process sees the new schema
-on its next read; with a **shared** store (e.g. `Rails.cache`) every other process sees it within
+on its next read (barring a reload already in flight); with a **shared** store (e.g. `Rails.cache`) every other process sees it within
 `schema_memo_ttl`, no restart needed. With the default in-process `MemoryCache`, other processes
 refresh only when their own entry expires. `Model.clear_schema_cache` (or
 `Schema.clear_memo(base_id)`) drops this process's memo for the base, without a fallback copy.

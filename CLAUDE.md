@@ -43,7 +43,8 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
 - **The schema memo stays a plain per-base TTL memo** (`Schema::Memo`, keyed by `base_id` so a
   multi-base host needs no memo changes): TTL, previous copy on reload failure, no locks. The
   thread-coordination trade-offs (concurrent store re-reads after a TTL, per-caller cold-start
-  timeouts, no `race_condition_ttl`) were accepted on purpose in 0.3.0 — don't re-add single-flight
+  timeouts, no `race_condition_ttl`, a load racing `clear_cache` or another reload may memoize an
+  older copy for up to one TTL) were accepted on purpose in 0.3.0 — don't re-add single-flight
   locks, CAS guards or error sharing without a measured problem.
 - **`normalizes` is ActiveModel 8.0+ only** — the include in `attributes.rb` is conditional;
   models on 7.1 simply don't have the DSL. Don't make it unconditional (it NameErrors mid-
@@ -77,7 +78,7 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
   English placeholder names; real IDs/types/structure) — keep it free of business vocabulary.
 - `MemoryCache` decides hit/miss by key presence (false/nil are cacheable — Rails.cache parity)
   and holds one coarse mutex across the fetch block (nested fetches would deadlock — fine, since
-  the schema memo reads the store at most once per `schema_memo_ttl` per base and thread).
+  nothing calls `cache.fetch` from inside the schema fetch block).
 - RuboCop deviations are deliberate and commented in `.rubocop.yml` (multi-constant `errors.rb`,
   the `for_gem_extension` namespace-then-reopen entry point, the dashed require shim, AR-contract
   naming like `has_many`/boolean-returning `save`).
