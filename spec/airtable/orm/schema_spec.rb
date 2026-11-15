@@ -70,19 +70,6 @@ RSpec.describe Airtable::ORM::Schema do
     it "defaults the store expiry to 24 hours" do
       expect(Airtable::ORM.config.schema_cache_expiry).to eq(24.hours)
     end
-
-    it "adds race_condition_ttl only for ActiveSupport cache stores" do
-      store = ActiveSupport::Cache::MemoryStore.new
-      Airtable::ORM.config.cache = store
-      allow(store).to receive(:fetch).and_call_original
-
-      described_class.fetch(base_id)
-
-      expect(store).to have_received(:fetch).with(
-        "airtable:schema:#{base_id}",
-        expires_in: 24.hours, race_condition_ttl: described_class::RACE_CONDITION_TTL
-      )
-    end
   end
 
   describe "per-base memo (config.schema_memo_ttl)" do
@@ -168,14 +155,12 @@ RSpec.describe Airtable::ORM::Schema do
       expect(model.schema).to equal(stale)
     end
 
-    it "raises a failed forced refresh without deleting the store entry or the memo copy" do
+    it "raises a failed forced refresh but keeps the copy for models" do
       stale = model.schema
       allow(described_class).to receive(:fetch_from_api).and_raise(Airtable::ORM::ConnectionError, "down")
-      allow(cache).to receive(:delete).and_call_original
 
       expect { described_class.fetch(base_id, force_refresh: true) }
         .to raise_error(Airtable::ORM::ConnectionError)
-      expect(cache).not_to have_received(:delete)
       expect(model.schema).to equal(stale)
     end
 
@@ -184,15 +169,6 @@ RSpec.describe Airtable::ORM::Schema do
       described_class.fetch(base_id)
 
       expect(cache).to have_received(:fetch).once
-    end
-
-    it "clears a memo in place, so concurrent readers keep sharing one reload" do
-      described_class.fetch(base_id)
-      memos = described_class.send(:const_get, :MEMOS)
-      before = memos[base_id]
-      described_class.clear_memo(base_id)
-
-      expect(memos[base_id]).to equal(before)
     end
 
     it "returns the store's delete result from clear_cache" do

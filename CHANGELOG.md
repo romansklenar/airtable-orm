@@ -16,14 +16,11 @@ change observable behaviour and new public configuration is added — see Change
 
 - The base schema is memoized **per base** in each process (`Schema::Memo`, one per `base_id`)
   instead of per model class: `Schema.fetch(base_id)` reads the memo, then `config.cache`, then
-  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; then one thread per process
-  reloads while the others keep reading the previous copy (after `Schema.clear_cache` they wait
-  for the reload). `/v0/meta` is still called only on a store miss.
+  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; `/v0/meta` is still called only
+  on a store miss.
 - If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
   copy, logs a warning to `config.logger` and retries after 30 seconds. Without a copy the error
-  is raised.
-- `fetch(force_refresh: true)` fetches from the API first and only then replaces the store entry,
-  so a failure raises without deleting anything (the memo keeps its copy as the fallback).
+  is raised. `fetch(force_refresh: true)` raises on failure, leaving the copy as the fallback.
 - `Schema.clear_cache(base_id)` also expires this process's memo, so the next read reloads (the
   copy stays as the outage fallback); with a shared store, every other process follows within the
   TTL.
@@ -37,9 +34,6 @@ change observable behaviour and new public configuration is added — see Change
 - `config.schema_cache_expiry` (default `24.hours`, the previous hard-coded value) sets how long
   the schema lives in `config.cache`. `Schema::CACHE_EXPIRY` is deprecated and no longer read.
 - `Schema.clear_memo(base_id)` and `Schema.reset_memos!` drop in-process memos.
-- ActiveSupport cache stores receive `race_condition_ttl: 30.seconds` on the schema fetch, so an
-  expiring entry is refetched by one process instead of all of them. The built-in `MemoryCache`
-  and other non-ActiveSupport stores still get only `:expires_in`.
 - Explicit `concurrent-ruby ~> 1.1` dependency (ActiveSupport already pulls in a compatible
   version).
 

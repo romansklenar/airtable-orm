@@ -9,24 +9,21 @@ module Airtable
       # Superseded by config.schema_cache_expiry; no longer read.
       CACHE_EXPIRY = 24.hours
       deprecate_constant :CACHE_EXPIRY
-      # When an entry expires, ActiveSupport stores keep serving the stale value this long to
-      # other readers while one process refetches, so expiry doesn't stampede /v0/meta.
-      RACE_CONDITION_TTL = 30.seconds
 
       MEMOS = Concurrent::Map.new # base_id → Memo
       private_constant :MEMOS
 
       class << self
         # Indexed base schema: the per-process memo (config.schema_memo_ttl), then the cache store
-        # (config.schema_cache_expiry), then /v0/meta. force_refresh fetches from the API first and
-        # then replaces the store entry; it raises on failure, deleting nothing, and the memo keeps
-        # its copy as the outage fallback.
+        # (config.schema_cache_expiry), then /v0/meta. force_refresh clears both and refetches; it
+        # raises on failure, while the memo keeps its copy as the outage fallback.
         def fetch(base_id, force_refresh: false)
           base_id = base_id.to_s
           memo = memo_for(base_id)
           return memo.fetch { read_store(base_id) } unless force_refresh
 
-          memo.refresh { write_through(base_id) }
+          clear_cache(base_id)
+          memo.refresh { read_store(base_id) }
         end
 
         # Deletes the store entry and expires this process's memo (it keeps its copy as the outage
@@ -53,14 +50,9 @@ module Airtable
         end
 
         def read_store(base_id)
-          cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
-        end
-
-        # API first, so a failure deletes nothing; then swap the store entry with a minimal gap.
-        def write_through(base_id)
-          fresh = fetch_from_api(base_id)
-          cache.delete(cache_key(base_id))
-          cache.fetch(cache_key(base_id), **cache_options) { fresh }
+          cache.fetch(cache_key(base_id), expires_in: ORM.config.schema_cache_expiry) do
+            fetch_from_api(base_id)
+          end
         end
 
         def fetch_from_api(base_id)
@@ -89,19 +81,6 @@ module Airtable
 
           # Index tables by table id
           tables.index_by { |table| table[:id] }
-        end
-
-        # Only ActiveSupport stores understand :race_condition_ttl (MemoryCache takes just
-        # :expires_in). An unloaded ActiveSupport::Cache autoload means the store can't be one, so
-        # standalone hosts never load the cache library for this check.
-        def cache_options
-          options = { expires_in: ORM.config.schema_cache_expiry }
-          options[:race_condition_ttl] = RACE_CONDITION_TTL if active_support_store?
-          options
-        end
-
-        def active_support_store?
-          !ActiveSupport.autoload?(:Cache) && cache.is_a?(ActiveSupport::Cache::Store)
         end
 
         def cache_key(base_id)
