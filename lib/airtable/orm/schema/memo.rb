@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "concurrent/atomic/atomic_reference"
+
 module Airtable
   module ORM
     class Schema
@@ -19,21 +21,19 @@ module Airtable
 
         def initialize(base_id)
           @base_id = base_id
-          @entry = nil
+          @entry = Concurrent::AtomicReference.new # Entry; swapped, never mutated
           @last_failure = nil # [error, failed_at] of the latest reload that had no copy to serve
           @reload_lock = Mutex.new # one reload at a time; held across the load
-          @write_lock = Mutex.new  # short, never held across a load, so expire! never waits
         end
 
         # Memoized schema, reloading via the block once the TTL has elapsed.
         def fetch(&)
           return yield unless memoizing?
 
-          entry = @entry
+          entry = @entry.get
           return entry.schema if fresh?(entry)
-          # Stale (not cleared) copy and another thread is reloading: serve the copy meanwhile.
-          # (A racy check by design: losing it only means briefly waiting below. synchronize keeps
-          # lock/unlock paired even under Thread#raise, e.g. from rack-timeout.)
+          # locked? + synchronize rather than try_lock: synchronize keeps lock/unlock paired even
+          # under Thread#raise (rack-timeout); losing this racy check only means a brief wait.
           return entry.schema if servable_while_reloading?(entry) && @reload_lock.locked?
 
           waiting_since = self.class.clock
@@ -45,7 +45,7 @@ module Airtable
           return yield unless memoizing?
 
           @reload_lock.synchronize do
-            entry = @entry
+            entry = @entry.get
             store(yield, replacing: entry)
           end
         end
@@ -53,18 +53,18 @@ module Airtable
         # Force a reload on next read but keep the copy as the outage fallback. A new entry, so a
         # load in flight (even the first one) sees the change and won't store its result.
         def expire!
-          @write_lock.synchronize { @entry = Entry.new(@entry&.schema, CLEARED).freeze }
+          @entry.update { |entry| Entry.new(entry&.schema, CLEARED).freeze }
         end
 
         # Like expire!, but also drops the fallback copy.
         def clear!
-          @write_lock.synchronize { @entry = Entry.new(nil, CLEARED).freeze }
+          @entry.set(Entry.new(nil, CLEARED).freeze)
         end
 
         private
 
         def reload(waiting_since)
-          entry = @entry
+          entry = @entry.get
           return entry.schema if fresh?(entry) # another thread reloaded while we waited
 
           # The load we queued behind failed with nothing to serve: share its error, don't repeat
@@ -103,8 +103,7 @@ module Airtable
         # Stamped after the load, so the TTL starts once the value is in hand. Only replaces the
         # entry the load started from, so an overtaken load never restores an older copy.
         def store(schema, replacing:, expires_in: ttl)
-          expires_at = self.class.clock + expires_in
-          @write_lock.synchronize { @entry = Entry.new(schema, expires_at).freeze if @entry.equal?(replacing) }
+          @entry.compare_and_set(replacing, Entry.new(schema, self.class.clock + expires_in).freeze)
           schema
         end
       end
