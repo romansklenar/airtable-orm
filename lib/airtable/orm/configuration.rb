@@ -22,11 +22,8 @@ module Airtable
         @logger = Logger.new(IO::NULL)
         @http_logger = nil             # set to a Logger to enable Faraday request logging
         @cache = MemoryCache.new       # schema cache default; hosts inject Rails.cache
-        # How long the base schema lives in the shared `cache` store before /v0/meta is re-read.
-        @schema_cache_expiry = 24.hours
-        # How long each process trusts its in-memory copy of a model's schema before re-reading
-        # the shared `cache` store (not the API). nil/0 disables the in-process memo entirely.
-        @schema_memo_ttl = 300
+        @schema_cache_expiry = 24.hours # schema lifetime in `cache` before /v0/meta is re-read
+        @schema_memo_ttl = 5.minutes    # per-process memo before re-reading `cache`; nil/0 = off
       end
 
       # Example: table_fields(:case) => { _id: "id", advisors: "fldgU5KU1qlN8eJ3v", ... }

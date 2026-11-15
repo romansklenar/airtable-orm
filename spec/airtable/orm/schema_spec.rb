@@ -89,14 +89,22 @@ RSpec.describe Airtable::ORM::Schema do
     let(:model) do
       Class.new(Airtable::ORM::Base) do
         self.table_name = :case
+        attribute :status, :string
+        attribute :label, :string
       end
     end
     let(:cache) { Airtable::ORM.config.cache }
+    let(:select_schema) do
+      {
+        tables: [{ id: "tblQeKH7yYesvWf5p", name: "Configured",
+                   fields: [{ id: "fldX", name: "Field fldX", type: "singleLineText" },
+                            { id: "fldNew", name: "Field fldNew", type: "singleSelect" }] }]
+      }.to_json
+    end
 
     before do
       @clock = 1_000.0
-      allow(Process).to receive(:clock_gettime).and_call_original
-      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC) { @clock }
+      allow(model).to receive(:schema_clock) { @clock }
       allow(cache).to receive(:fetch).and_call_original
     end
 
@@ -124,11 +132,7 @@ RSpec.describe Airtable::ORM::Schema do
     it "picks up a changed Airtable schema after Schema.clear_cache once the TTL elapses" do
       expect(model.schema[:fields].keys).to eq(["fldX"])
 
-      @served_schema = {
-        tables: [{ id: "tblQeKH7yYesvWf5p", name: "Configured",
-                   fields: [{ id: "fldX", name: "Field fldX", type: "singleLineText" },
-                            { id: "fldNew", name: "Field fldNew", type: "singleSelect" }] }]
-      }.to_json
+      @served_schema = select_schema
       described_class.clear_cache(base_id)
 
       @clock += 299
@@ -147,6 +151,45 @@ RSpec.describe Airtable::ORM::Schema do
 
       expect(cache).to have_received(:fetch).exactly(3).times
       expect(@meta_requests).to eq(1)
+    end
+
+    it "starts the TTL once the fetch has completed, not when it began" do
+      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
+        @clock += 400 # a fetch slower than the TTL
+        original.call(*args, **kwargs, &block)
+      end
+
+      model.schema
+      model.schema
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "keeps serving the expired copy for another TTL when the refresh fails" do
+      stale = model.schema
+      @clock += 301
+      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect(model.schema).to eq(stale)
+      @clock += 299
+      expect(model.schema).to eq(stale)
+      expect(described_class).to have_received(:fetch).once
+    end
+
+    it "raises a failed fetch when there is no copy to fall back on" do
+      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect { model.schema }.to raise_error(Airtable::ORM::ConnectionError)
+    end
+
+    it "reads the store once per field_options call even with the memo disabled" do
+      Airtable::ORM.config.schema_memo_ttl = nil
+      model.config_field_mapping = { status: "fldNew", label: "fldX" }
+      @served_schema = select_schema
+
+      model.field_options(:status)
+
+      expect(cache).to have_received(:fetch).once
     end
 
     it "clear_schema_cache drops this process's memo immediately" do

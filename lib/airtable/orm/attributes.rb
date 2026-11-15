@@ -43,27 +43,31 @@ module Airtable
         end
 
         # Get schema for this table.
-        # Memoized per class for config.schema_memo_ttl seconds (monotonic clock), then re-read
-        # from the shared cache store via Schema.fetch — which hits /v0/meta only on a store
-        # miss — so a schema change or Schema.clear_cache reaches long-running processes without
-        # a restart. The [schema, loaded_at] pair lives in ONE ivar, assigned in one step, so a
-        # concurrent reader never pairs a new schema with an old timestamp (or vice versa).
+        # Memoized per class for config.schema_memo_ttl, then re-read via Schema.fetch (the
+        # cache store; /v0/meta only on a store miss). If that re-read fails, the expired copy
+        # keeps serving until the next TTL. The [schema, loaded_at] pair is one ivar assigned in
+        # one step, so concurrent readers never see a mismatched pair.
         def schema
           return {} unless table_name
 
           ttl = ORM.config.schema_memo_ttl
           return fetch_table_schema unless ttl&.positive?
 
-          now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
           memo = @schema_memo
-          return memo.first if memo && now - memo.last < ttl
+          return memo.first if memo && schema_clock - memo.last < ttl
 
-          fetch_table_schema.tap { |table_schema| @schema_memo = [table_schema, now].freeze }
+          memoize_schema(fetch_table_schema)
+        rescue Airtable::ORM::ApiError, Airtable::ORM::ConnectionError => e
+          raise unless memo
+
+          ORM.config.logger.warn("Airtable schema refresh for #{table_name.inspect} failed, " \
+                                 "serving the previous copy: #{e.class}: #{e.message}")
+          memoize_schema(memo.first)
         end
 
-        # Clear the memoized schema in THIS process only (for this class). To make every process
-        # see a changed Airtable schema, call Schema.clear_cache(base_id) — each process then
-        # picks it up once its config.schema_memo_ttl elapses.
+        # Clear the memoized schema in THIS process only. To refresh every process, call
+        # Schema.clear_cache(base_id) with a shared config.cache; each process picks the new
+        # schema up once its schema_memo_ttl elapses.
         def clear_schema_cache
           @schema_memo = nil
           @field_mapping = nil
@@ -91,8 +95,9 @@ module Airtable
         def schema_options
           return {} unless field_mapping.present?
 
+          table_schema = schema
           field_mapping.each_with_object({}) do |(symbol, field_id), options|
-            field_info = schema.dig(:fields, field_id)
+            field_info = table_schema.dig(:fields, field_id)
             next unless field_info
 
             case field_info[:type]
@@ -120,6 +125,16 @@ module Airtable
         def define_field_mapping
           fields = ORM.config.table_fields(table_name)
           self.config_field_mapping = fields&.except(:_id) || {}
+        end
+
+        # Stamped after the fetch, so the TTL starts once the value is actually loaded.
+        def memoize_schema(table_schema)
+          @schema_memo = [table_schema, schema_clock].freeze
+          table_schema
+        end
+
+        def schema_clock
+          Process.clock_gettime(Process::CLOCK_MONOTONIC)
         end
 
         def fetch_table_schema

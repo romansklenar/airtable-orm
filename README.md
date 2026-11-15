@@ -55,7 +55,7 @@ end
 | `http_logger` | `nil` | Set to a `Logger` to log Faraday requests |
 | `cache` | in-process `MemoryCache` | Schema cache; anything responding to `fetch`/`delete` |
 | `schema_cache_expiry` | `24.hours` | How long the base schema lives in `cache` before `/v0/meta` is re-read |
-| `schema_memo_ttl` | `300` seconds | How long each process trusts its in-memory schema before re-reading `cache`; `nil`/`0` disables the memo |
+| `schema_memo_ttl` | `5.minutes` | How long each process trusts its in-memory schema before re-reading `cache`; `nil`/`0` disables the memo |
 
 `Airtable::ORM.configured?` returns whether an `api_key` is set — handy for gating enqueue hooks so test/CI environments never touch the network.
 
@@ -85,16 +85,19 @@ end
 
 The base schema (tables, fields, select options) is cached on two levels:
 
-1. **Shared store** — `config.cache` (e.g. `Rails.cache`) holds the indexed base schema for
-   `config.schema_cache_expiry`. `/v0/meta` is only called on a miss here. ActiveSupport stores
-   also get `race_condition_ttl`, so an expiring entry doesn't stampede the API from every process.
-2. **Per-process memo** — each model class keeps its table schema in memory for
-   `config.schema_memo_ttl` seconds, then re-reads the shared store (not the API).
+1. **Store** — `config.cache` holds the indexed base schema for `config.schema_cache_expiry`;
+   `/v0/meta` is only called on a miss. ActiveSupport stores also get `race_condition_ttl`, so an
+   expiring entry is refetched by one process instead of all of them.
+2. **Per-process memo** — each model class keeps its table schema for `config.schema_memo_ttl`,
+   then re-reads the store (not the API). If that re-read fails, the previous copy keeps serving
+   for another TTL. With the memo disabled (`nil`/`0`), every schema lookup reads the store.
 
 After changing the schema in Airtable (e.g. a new single-select option), call
-`Airtable::ORM::Schema.clear_cache(base_id)`: the next store read refetches from the API, and every
-running process sees the new schema within `schema_memo_ttl` — no restart needed.
-`Model.clear_schema_cache` only drops the memo of that class in the current process.
+`Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)` to
+repopulate the store right away. With a **shared** store (e.g. `Rails.cache`) every process sees
+the new schema within `schema_memo_ttl`, no restart needed; with the default in-process
+`MemoryCache` each process refreshes only when its own entry expires. `Model.clear_schema_cache`
+drops just that class's memo in the current process.
 
 ## Errors
 

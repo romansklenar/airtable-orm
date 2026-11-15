@@ -4,8 +4,9 @@ module Airtable
   module ORM
     class Schema
       CACHE_KEY = "airtable:schema"
-      # Deprecated — superseded by config.schema_cache_expiry (same 24h default); no longer read.
+      # Superseded by config.schema_cache_expiry; no longer read.
       CACHE_EXPIRY = 24.hours
+      deprecate_constant :CACHE_EXPIRY
       # When an entry expires, ActiveSupport stores keep serving the stale value this long to
       # other readers while one process refetches, so expiry doesn't stampede /v0/meta.
       RACE_CONDITION_TTL = 30.seconds
