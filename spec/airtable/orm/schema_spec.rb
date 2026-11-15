@@ -220,6 +220,27 @@ RSpec.describe Airtable::ORM::Schema do
       expect(cache).to have_received(:fetch).twice # warm-up + the expired memo's re-read
     end
 
+    it "does not memoize a first load that Schema.clear_cache overtook" do
+      cleared = false
+      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
+        original.call(*args, **kwargs, &block).tap do
+          described_class.clear_cache(base_id) unless cleared # clear lands mid-first-load
+          cleared = true
+        end
+      end
+
+      3.times { model.schema }
+
+      expect(cache).to have_received(:fetch).twice # overtaken load not memoized; next one is
+    end
+
+    it "raises when an expired memo without a copy fails to refresh" do
+      described_class.clear_cache(base_id) # expires a model that never loaded
+      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect { model.schema }.to raise_error(Airtable::ORM::ConnectionError)
+    end
+
     it "does not memoize a refresh that Schema.clear_cache overtook" do
       model.schema
       @clock += 301

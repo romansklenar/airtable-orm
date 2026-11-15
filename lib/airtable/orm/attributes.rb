@@ -57,7 +57,7 @@ module Airtable
 
           memoize_schema(fetch_table_schema, replacing: memo)
         rescue Airtable::ORM::ApiError, Airtable::ORM::ConnectionError => e
-          raise unless memo
+          raise unless memo&.first
 
           ORM.config.logger.warn("Airtable schema refresh for #{table_name.inspect} failed, " \
                                  "serving the previous copy: #{e.class}: #{e.message}")
@@ -71,10 +71,10 @@ module Airtable
         end
 
         # @api private — used by Schema.clear_cache. Forces a re-read on next access but keeps the
-        # copy as the outage fallback.
+        # copy (if any) as the outage fallback. Always a new pair, so even a first load in flight
+        # sees the memo change and won't install the pre-clear schema.
         def expire_schema_memo # :nodoc:
-          memo = @schema_memo
-          @schema_memo = [memo.first, -Float::INFINITY].freeze if memo
+          @schema_memo = [@schema_memo&.first, -Float::INFINITY].freeze
         end
 
         # Get field schema by symbol
