@@ -70,9 +70,9 @@ module Airtable
           @field_mapping = nil
         end
 
-        # :nodoc: @api private — used by Schema.clear_cache. Forces a re-read on next access but
-        # keeps the copy as the outage fallback.
-        def expire_schema_memo
+        # @api private — used by Schema.clear_cache. Forces a re-read on next access but keeps the
+        # copy as the outage fallback.
+        def expire_schema_memo # :nodoc:
           memo = @schema_memo
           @schema_memo = [memo.first, -Float::INFINITY].freeze if memo
         end
