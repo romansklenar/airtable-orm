@@ -1,26 +1,42 @@
 ## [Unreleased]
 
-## [0.2.4] - 2026-11-13
+## [0.3.0] - 2026-11-15
+
+Schema caching rework. Minor (not patch) because `Schema.fetch` and `Model.clear_schema_cache`
+change observable behaviour and new public configuration is added — see Changed below.
 
 ### Fixed
 
-- A model's schema memo now expires: `Model.schema` re-reads `config.cache` after
-  `config.schema_memo_ttl` (default 5 minutes; `nil`/`0` disables the memo). Previously the
-  class-level memo lived for the whole process, so `Schema.clear_cache` and store expiry never
-  reached running processes — a new single-select option stayed invisible (and failed
-  `inclusion: field_options(...)` validations) until a restart. `Schema.clear_cache` (and
-  `fetch(force_refresh: true)`) now also expires the calling process's model memos; with a shared
-  store, every other process picks up the cleared schema within the TTL. `/v0/meta` is still
-  called only on a store miss, and a failed refresh keeps serving the previous copy for another
+- Schema changes now reach running processes without a restart. The per-model memo used to live
+  for the whole process, so neither `Schema.clear_cache` nor store expiry reached running puma or
+  worker processes: a new single-select option stayed invisible (and failed
+  `inclusion: field_options(...)` validations) until a restart.
+
+### Changed
+
+- The base schema is memoized **per base** in each process (`Schema::Memo`, one per `base_id`)
+  instead of per model class: `Schema.fetch(base_id)` reads the memo, then `config.cache`, then
+  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; `/v0/meta` is still called only
+  on a store miss.
+- If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
+  copy for another TTL and logs a warning to `config.logger`. Without a copy the error is raised.
+  `fetch(force_refresh: true)` always raises on failure, but leaves the copy as the fallback.
+- `Schema.clear_cache(base_id)` also expires this process's memo, so the next read reloads (the
+  copy stays as the outage fallback); with a shared store, every other process follows within the
   TTL.
+- `Model.clear_schema_cache` now drops the memo of the model's whole base (shared by every model
+  on it), fallback copy included. `Airtable::ORM.reset!` drops every memo.
 
 ### Added
 
+- `config.schema_memo_ttl` (default `5.minutes`; `nil`/`0` disables the memo).
 - `config.schema_cache_expiry` (default `24.hours`, the previous hard-coded value) sets how long
   the schema lives in `config.cache`. `Schema::CACHE_EXPIRY` is deprecated and no longer read.
+- `Schema.clear_memo(base_id)` and `Schema.reset_memos!` drop in-process memos.
 - ActiveSupport cache stores receive `race_condition_ttl: 30.seconds` on the schema fetch, so an
   expiring entry is refetched by one process instead of all of them. The built-in `MemoryCache`
   and other non-ActiveSupport stores still get only `:expires_in`.
+- Explicit `concurrent-ruby ~> 1.1` dependency (already present via ActiveSupport).
 
 ## [0.2.3] - 2026-09-24
 
