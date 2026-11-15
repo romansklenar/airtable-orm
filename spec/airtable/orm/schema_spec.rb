@@ -129,11 +129,11 @@ RSpec.describe Airtable::ORM::Schema do
       expect(@meta_requests).to eq(1)
     end
 
-    it "picks up a changed Airtable schema after Schema.clear_cache once the TTL elapses" do
+    it "picks up a schema cleared from the store by another process once the TTL elapses" do
       expect(model.schema[:fields].keys).to eq(["fldX"])
 
       @served_schema = select_schema
-      described_class.clear_cache(base_id)
+      cache.delete("airtable:schema:#{base_id}") # Schema.clear_cache run elsewhere
 
       @clock += 299
       expect(model.schema[:fields].keys).to eq(["fldX"]) # still memoized in this process
@@ -165,15 +165,34 @@ RSpec.describe Airtable::ORM::Schema do
       expect(cache).to have_received(:fetch).once
     end
 
+    it "drops this process's model memos on Schema.clear_cache" do
+      expect(model.schema[:fields].keys).to eq(["fldX"])
+
+      @served_schema = select_schema
+      described_class.clear_cache(base_id)
+
+      expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
+    end
+
     it "keeps serving the expired copy for another TTL when the refresh fails" do
       stale = model.schema
       @clock += 301
       allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+      allow(Airtable::ORM.config.logger).to receive(:warn)
 
       expect(model.schema).to eq(stale)
+      expect(Airtable::ORM.config.logger).to have_received(:warn).with(/serving the previous copy/)
       @clock += 299
       expect(model.schema).to eq(stale)
       expect(described_class).to have_received(:fetch).once
+    end
+
+    it "does not fall back when the refreshed schema lacks the table" do
+      model.schema
+      @clock += 301
+      allow(described_class).to receive(:fetch).and_return({})
+
+      expect { model.schema }.to raise_error(Airtable::ORM::ConfigurationError)
     end
 
     it "raises a failed fetch when there is no copy to fall back on" do

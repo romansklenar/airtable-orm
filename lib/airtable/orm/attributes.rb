@@ -44,9 +44,10 @@ module Airtable
 
         # Get schema for this table.
         # Memoized per class for config.schema_memo_ttl, then re-read via Schema.fetch (the
-        # cache store; /v0/meta only on a store miss). If that re-read fails, the expired copy
-        # keeps serving until the next TTL. The [schema, loaded_at] pair is one ivar assigned in
-        # one step, so concurrent readers never see a mismatched pair.
+        # cache store; /v0/meta only on a store miss). If that re-read fails with an API or
+        # connection error, the expired copy keeps serving until the next TTL. The
+        # [schema, loaded_at] pair is one ivar assigned in one step, so concurrent readers never
+        # see a mismatched pair.
         def schema
           return {} unless table_name
 
@@ -65,9 +66,9 @@ module Airtable
           memoize_schema(memo.first)
         end
 
-        # Clear the memoized schema in THIS process only. To refresh every process, call
-        # Schema.clear_cache(base_id) with a shared config.cache; each process picks the new
-        # schema up once its schema_memo_ttl elapses.
+        # Clear this class's memoized schema in THIS process only. Schema.clear_cache(base_id)
+        # does it for every model on the base and, with a shared config.cache, reaches other
+        # processes once their schema_memo_ttl elapses.
         def clear_schema_cache
           @schema_memo = nil
           @field_mapping = nil

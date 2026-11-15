@@ -18,8 +18,11 @@ module Airtable
           cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
         end
 
+        # Other processes pick the change up when their schema_memo_ttl elapses; this one drops
+        # its model memos right away.
         def clear_cache(base_id)
           cache.delete(cache_key(base_id))
+          Base.descendants.each { |model| model.clear_schema_cache if model.base_id == base_id }
         end
 
         private
