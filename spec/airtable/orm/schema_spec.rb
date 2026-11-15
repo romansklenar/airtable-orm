@@ -85,7 +85,7 @@ RSpec.describe Airtable::ORM::Schema do
     end
   end
 
-  describe "model schema memo (config.schema_memo_ttl)" do
+  describe "per-base memo (config.schema_memo_ttl)" do
     let(:model) do
       Class.new(Airtable::ORM::Base) do
         self.table_name = :case
@@ -93,6 +93,7 @@ RSpec.describe Airtable::ORM::Schema do
         attribute :label, :string
       end
     end
+    let(:other_model) { Class.new(Airtable::ORM::Base) { self.table_name = :case } }
     let(:cache) { Airtable::ORM.config.cache }
     let(:select_schema) do
       {
@@ -104,23 +105,30 @@ RSpec.describe Airtable::ORM::Schema do
 
     before do
       @clock = 1_000.0
-      allow(model).to receive(:schema_clock) { @clock }
+      allow(described_class::Memo).to receive(:clock) { @clock }
       allow(cache).to receive(:fetch).and_call_original
     end
 
-    it "defaults to 300 seconds" do
-      expect(Airtable::ORM.config.schema_memo_ttl).to eq(300)
+    it "defaults to 5 minutes" do
+      expect(Airtable::ORM.config.schema_memo_ttl).to eq(5.minutes)
     end
 
-    it "does not read the shared store again before the TTL elapses" do
+    it "is shared by every model on the base" do
       model.schema
-      @clock += 299
-      model.schema
+      other_model.schema
 
       expect(cache).to have_received(:fetch).once
     end
 
-    it "re-reads the shared store, not the API, once the TTL elapses" do
+    it "keeps bases apart" do
+      described_class.fetch(base_id)
+      described_class.clear_memo("appOtherBase")
+      described_class.fetch(base_id)
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "re-reads the store, not the API, once the TTL elapses" do
       model.schema
       @clock += 301
       model.schema
@@ -143,29 +151,7 @@ RSpec.describe Airtable::ORM::Schema do
       expect(@meta_requests).to eq(2)
     end
 
-    it "reads the shared store on every access when disabled" do
-      Airtable::ORM.config.schema_memo_ttl = nil
-      2.times { model.schema }
-      Airtable::ORM.config.schema_memo_ttl = 0
-      model.schema
-
-      expect(cache).to have_received(:fetch).exactly(3).times
-      expect(@meta_requests).to eq(1)
-    end
-
-    it "starts the TTL once the fetch has completed, not when it began" do
-      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
-        @clock += 400 # a fetch slower than the TTL
-        original.call(*args, **kwargs, &block)
-      end
-
-      model.schema
-      model.schema
-
-      expect(cache).to have_received(:fetch).once
-    end
-
-    it "expires this process's model memos on Schema.clear_cache" do
+    it "makes Schema.clear_cache visible in this process immediately" do
       expect(model.schema[:fields].keys).to eq(["fldX"])
 
       @served_schema = select_schema
@@ -174,20 +160,15 @@ RSpec.describe Airtable::ORM::Schema do
       expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
     end
 
-    it "keeps serving the expired copy for another TTL when the refresh fails" do
+    it "serves the previous copy when the store and API fail after the TTL" do
       stale = model.schema
       @clock += 301
-      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
-      allow(Airtable::ORM.config.logger).to receive(:warn)
+      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
 
-      expect(model.schema).to eq(stale)
-      expect(Airtable::ORM.config.logger).to have_received(:warn).with(/serving the previous copy/)
-      @clock += 299
-      expect(model.schema).to eq(stale)
-      expect(described_class).to have_received(:fetch).once
+      expect(model.schema).to equal(stale)
     end
 
-    it "keeps the models' fallback copies when a forced refresh fails" do
+    it "raises a failed forced refresh but keeps the copy for models" do
       stale = model.schema
       allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
 
@@ -196,76 +177,19 @@ RSpec.describe Airtable::ORM::Schema do
       expect(model.schema).to equal(stale)
     end
 
-    it "does not let a failed refresh overwrite a newer copy stored by another thread" do
+    it "refetches from the API on force_refresh even within the TTL" do
       model.schema
-      @clock += 301
-      newer = { id: "tblQeKH7yYesvWf5p", fields: {} }
-      allow(described_class).to receive(:fetch) do # simulates another thread's write mid-refresh
-        model.send(:memoize_schema, newer, replacing: model.instance_variable_get(:@schema_memo))
-        raise Airtable::ORM::ConnectionError, "down"
-      end
+      @served_schema = select_schema
+      described_class.fetch(base_id, force_refresh: true)
 
-      model.schema
-
-      expect(model.schema).to equal(newer)
+      expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
+      expect(@meta_requests).to eq(2)
     end
 
-    it "keeps the fallback copy when Schema.clear_cache runs during an outage" do
-      stale = model.schema
-      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
-
-      described_class.clear_cache(base_id)
-
-      expect(model.schema).to equal(stale)
-      expect(cache).to have_received(:fetch).twice # warm-up + the expired memo's re-read
-    end
-
-    it "does not memoize a first load that Schema.clear_cache overtook" do
-      cleared = false
-      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
-        original.call(*args, **kwargs, &block).tap do
-          described_class.clear_cache(base_id) unless cleared # clear lands mid-first-load
-          cleared = true
-        end
-      end
-
-      3.times { model.schema }
-
-      expect(cache).to have_received(:fetch).twice # overtaken load not memoized; next one is
-    end
-
-    it "raises when an expired memo without a copy fails to refresh" do
-      described_class.clear_cache(base_id) # expires a model that never loaded
-      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
-
-      expect { model.schema }.to raise_error(Airtable::ORM::ConnectionError)
-    end
-
-    it "does not memoize a refresh that Schema.clear_cache overtook" do
-      model.schema
-      @clock += 301
-      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
-        # clear lands mid-refresh
-        original.call(*args, **kwargs, &block).tap { described_class.clear_cache(base_id) }
-      end
-
-      2.times { model.schema }
-
-      expect(cache).to have_received(:fetch).exactly(3).times
-    end
-
-    it "does not fall back when the refreshed schema lacks the table" do
-      model.schema
-      @clock += 301
+    it "raises ConfigurationError when the schema lacks the table" do
       allow(described_class).to receive(:fetch).and_return({})
 
       expect { model.schema }.to raise_error(Airtable::ORM::ConfigurationError)
-    end
-
-    it "raises a failed fetch when there is no copy to fall back on" do
-      allow(described_class).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
-
-      expect { model.schema }.to raise_error(Airtable::ORM::ConnectionError)
     end
 
     it "reads the store once per field_options call even with the memo disabled" do
@@ -278,12 +202,23 @@ RSpec.describe Airtable::ORM::Schema do
       expect(cache).to have_received(:fetch).once
     end
 
-    it "clear_schema_cache drops this process's memo immediately" do
+    it "Model.clear_schema_cache drops the base's memo" do
       model.schema
-      model.clear_schema_cache
+      other_model.clear_schema_cache
       model.schema
 
       expect(cache).to have_received(:fetch).twice
+    end
+
+    it "ORM.reset! drops every memo" do
+      model.schema
+      Airtable::ORM.reset!
+      configure_airtable_orm_from_fixture
+      allow(Airtable::ORM.config.cache).to receive(:fetch).and_call_original
+      model.schema
+
+      expect(Airtable::ORM.config.cache).to have_received(:fetch).once # fresh config, memo gone
+      expect(@meta_requests).to eq(2)
     end
   end
 end

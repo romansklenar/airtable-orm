@@ -42,39 +42,22 @@ module Airtable
           ORM.config.table_id(table_name)
         end
 
-        # Table schema, memoized per class for config.schema_memo_ttl, then re-read via
-        # Schema.fetch (the cache store; /v0/meta only on a store miss). If the re-read fails with
-        # an API or connection error, the previous copy serves for another TTL. [schema, loaded_at]
-        # lives in one ivar so concurrent readers never see a mismatched pair.
+        # Schema of this table; caching (memo, store, fallback) lives in Schema, keyed by base_id.
         def schema
           return {} unless table_name
 
-          ttl = ORM.config.schema_memo_ttl.to_f # nil → 0.0 (off); Float compares cheaply
-          return fetch_table_schema unless ttl.positive?
-
-          memo = @schema_memo
-          return memo.first if memo && schema_clock - memo.last < ttl
-
-          memoize_schema(fetch_table_schema, replacing: memo)
-        rescue Airtable::ORM::ApiError, Airtable::ORM::ConnectionError => e
-          raise unless memo&.first
-
-          ORM.config.logger.warn("Airtable schema refresh for #{table_name.inspect} failed, " \
-                                 "serving the previous copy: #{e.class}: #{e.message}")
-          memoize_schema(memo.first, replacing: memo)
+          Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
+            Airtable::ORM::ConfigurationError,
+            "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
+            "#{base_id.inspect} — check config.tables against the Airtable base"
+          )
         end
 
-        # Clear this class's memoized schema (and field mapping) in THIS process only.
+        # Drops this process's schema memo for the model's base (shared by every model on it,
+        # fallback copy included) and the field mapping.
         def clear_schema_cache
-          @schema_memo = nil
+          Airtable::ORM::Schema.clear_memo(base_id)
           @field_mapping = nil
-        end
-
-        # @api private — used by Schema.clear_cache. Forces a re-read on next access but keeps the
-        # copy (if any) as the outage fallback. Always a new pair, so even a first load in flight
-        # sees the memo change and won't install the pre-clear schema.
-        def expire_schema_memo # :nodoc:
-          @schema_memo = [@schema_memo&.first, -Float::INFINITY].freeze
         end
 
         # Get field schema by symbol
@@ -129,26 +112,6 @@ module Airtable
         def define_field_mapping
           fields = ORM.config.table_fields(table_name)
           self.config_field_mapping = fields&.except(:_id) || {}
-        end
-
-        # Stamped after the fetch, so the TTL starts once the value is loaded. Skips the write if
-        # the memo changed meanwhile (another thread refreshed it, or Schema.clear_cache expired
-        # it), so a slow or failed refresh doesn't put back an older copy (best effort, no lock).
-        def memoize_schema(table_schema, replacing:)
-          @schema_memo = [table_schema, schema_clock].freeze if @schema_memo.equal?(replacing)
-          table_schema
-        end
-
-        def schema_clock
-          Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        end
-
-        def fetch_table_schema
-          Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
-            Airtable::ORM::ConfigurationError,
-            "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
-            "#{base_id.inspect} — check config.tables against the Airtable base"
-          )
         end
       end
 

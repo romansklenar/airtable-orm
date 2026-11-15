@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "concurrent/map"
+
 module Airtable
   module ORM
     class Schema
@@ -11,21 +13,47 @@ module Airtable
       # other readers while one process refetches, so expiry doesn't stampede /v0/meta.
       RACE_CONDITION_TTL = 30.seconds
 
-      class << self
-        def fetch(base_id, force_refresh: false)
-          clear_cache(base_id) if force_refresh
+      MEMOS = Concurrent::Map.new # base_id → Memo
+      private_constant :MEMOS
 
-          cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
+      class << self
+        # Indexed base schema: the per-process memo (config.schema_memo_ttl), then the cache store
+        # (config.schema_cache_expiry), then /v0/meta. force_refresh skips both caches and raises
+        # on failure, while the memo keeps the previous copy as the outage fallback.
+        def fetch(base_id, force_refresh: false)
+          memo = memo_for(base_id)
+          return memo.fetch { read_store(base_id) } unless force_refresh
+
+          clear_cache(base_id)
+          memo.refresh { read_store(base_id) }
         end
 
-        # Also expires this process's model memos, so they re-read on next access (keeping their
-        # copy as the outage fallback); other processes follow once their schema_memo_ttl elapses.
+        # Deletes the store entry and expires this process's memo (it keeps its copy as the outage
+        # fallback); with a shared store, other processes follow once their schema_memo_ttl elapses.
         def clear_cache(base_id)
           cache.delete(cache_key(base_id))
-          Base.descendants.each { |model| model.expire_schema_memo if model.base_id == base_id }
+          memo_for(base_id).expire!
+        end
+
+        # Drops this process's memo for the base, fallback copy included.
+        def clear_memo(base_id)
+          memo_for(base_id).clear!
+        end
+
+        # Drops every memo in this process (ORM.reset!).
+        def reset_memos!
+          MEMOS.clear
         end
 
         private
+
+        def memo_for(base_id)
+          MEMOS.compute_if_absent(base_id) { Memo.new(base_id) }
+        end
+
+        def read_store(base_id)
+          cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
+        end
 
         def fetch_from_api(base_id)
           response = client.connection.get("/v0/meta/bases/#{base_id}/tables")

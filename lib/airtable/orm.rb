@@ -43,6 +43,7 @@ module Airtable
       def reset!
         @config = nil
         Http::Client.reset!
+        Schema.reset_memos!
       end
     end
   end
