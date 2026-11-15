@@ -16,16 +16,20 @@ change observable behaviour and new public configuration is added — see Change
 
 - The base schema is memoized **per base** in each process (`Schema::Memo`, one per `base_id`)
   instead of per model class: `Schema.fetch(base_id)` reads the memo, then `config.cache`, then
-  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; `/v0/meta` is still called only
-  on a store miss.
+  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; then one thread per process
+  reloads while the others keep reading the previous copy. `/v0/meta` is still called only on a
+  store miss.
 - If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
-  copy for another TTL and logs a warning to `config.logger`. Without a copy the error is raised.
-  `fetch(force_refresh: true)` always raises on failure, but leaves the copy as the fallback.
+  copy, logs a warning to `config.logger` and retries after 30 seconds. Without a copy the error
+  is raised.
+- `fetch(force_refresh: true)` fetches from the API first and only then replaces the store entry,
+  so a failure raises without deleting anything (the memo keeps its copy as the fallback).
 - `Schema.clear_cache(base_id)` also expires this process's memo, so the next read reloads (the
   copy stays as the outage fallback); with a shared store, every other process follows within the
   TTL.
 - `Model.clear_schema_cache` now drops the memo of the model's whole base (shared by every model
-  on it), fallback copy included. `Airtable::ORM.reset!` drops every memo.
+  on it), fallback copy included. `Airtable::ORM.configure` and `Airtable::ORM.reset!` drop every
+  memo.
 
 ### Added
 

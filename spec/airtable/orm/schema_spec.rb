@@ -168,13 +168,37 @@ RSpec.describe Airtable::ORM::Schema do
       expect(model.schema).to equal(stale)
     end
 
-    it "raises a failed forced refresh but keeps the copy for models" do
+    it "raises a failed forced refresh without deleting the store entry or the memo copy" do
       stale = model.schema
-      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+      allow(described_class).to receive(:fetch_from_api).and_raise(Airtable::ORM::ConnectionError, "down")
+      allow(cache).to receive(:delete).and_call_original
 
       expect { described_class.fetch(base_id, force_refresh: true) }
         .to raise_error(Airtable::ORM::ConnectionError)
+      expect(cache).not_to have_received(:delete)
       expect(model.schema).to equal(stale)
+    end
+
+    it "treats symbol and string base IDs as the same base" do
+      described_class.fetch(base_id.to_sym)
+      described_class.fetch(base_id)
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "does not create a memo when clearing a base that was never fetched" do
+      described_class.clear_cache("appNeverFetched")
+      described_class.clear_memo("appNeverFetched")
+
+      expect(described_class.send(:const_get, :MEMOS).key?("appNeverFetched")).to be(false)
+    end
+
+    it "ORM.configure drops every memo" do
+      model.schema
+      Airtable::ORM.configure { |c| c.schema_memo_ttl = 10.minutes }
+      model.schema
+
+      expect(cache).to have_received(:fetch).twice
     end
 
     it "refetches from the API on force_refresh even within the TTL" do

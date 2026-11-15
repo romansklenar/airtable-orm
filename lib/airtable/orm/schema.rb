@@ -18,26 +18,28 @@ module Airtable
 
       class << self
         # Indexed base schema: the per-process memo (config.schema_memo_ttl), then the cache store
-        # (config.schema_cache_expiry), then /v0/meta. force_refresh skips both caches and raises
-        # on failure, while the memo keeps the previous copy as the outage fallback.
+        # (config.schema_cache_expiry), then /v0/meta. force_refresh fetches from the API first and
+        # then replaces the store entry; it raises on failure, deleting nothing, and the memo keeps
+        # its copy as the outage fallback.
         def fetch(base_id, force_refresh: false)
+          base_id = base_id.to_s
           memo = memo_for(base_id)
           return memo.fetch { read_store(base_id) } unless force_refresh
 
-          clear_cache(base_id)
-          memo.refresh { read_store(base_id) }
+          memo.refresh { write_through(base_id) }
         end
 
         # Deletes the store entry and expires this process's memo (it keeps its copy as the outage
         # fallback); with a shared store, other processes follow once their schema_memo_ttl elapses.
         def clear_cache(base_id)
           cache.delete(cache_key(base_id))
-          memo_for(base_id).expire!
+          MEMOS[base_id.to_s]&.expire!
         end
 
         # Drops this process's memo for the base, fallback copy included.
         def clear_memo(base_id)
-          memo_for(base_id).clear!
+          MEMOS.delete(base_id.to_s)
+          nil
         end
 
         # Drops every memo in this process (ORM.reset!).
@@ -53,6 +55,13 @@ module Airtable
 
         def read_store(base_id)
           cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
+        end
+
+        # API first, so a failure deletes nothing; then swap the store entry with a minimal gap.
+        def write_through(base_id)
+          fresh = fetch_from_api(base_id)
+          cache.delete(cache_key(base_id))
+          cache.fetch(cache_key(base_id), **cache_options) { fresh }
         end
 
         def fetch_from_api(base_id)

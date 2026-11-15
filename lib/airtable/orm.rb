@@ -33,6 +33,7 @@ module Airtable
         # The client memoizes api_key/timeouts/rate_limit at first request — without this
         # reset a later configure (e.g. rotating the API key) would be silently ignored.
         Http::Client.reset!
+        Schema.reset_memos! # a new cache store or tables must not be served from old memos
       end
 
       # True when an API key is configured — hosts gate network-touching hooks on this.

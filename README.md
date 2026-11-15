@@ -89,13 +89,15 @@ The base schema (tables, fields, select options) is cached on two levels, both k
    `/v0/meta` is only called on a miss. ActiveSupport stores also get `race_condition_ttl`, so an
    expiring entry is refetched by one process instead of all of them.
 2. **Per-process memo** — one memo per base, shared by every model on it, trusted for
-   `config.schema_memo_ttl`, then re-read from the store (not the API). If that re-read fails with
-   an API or connection error, the previous copy keeps serving for another TTL (logged as a
-   warning). With the memo disabled (`nil`/`0`), every schema lookup reads the store.
+   `config.schema_memo_ttl`, then re-read from the store (not the API) by one thread while the
+   others keep reading the previous copy. If that re-read fails with an API or connection error,
+   the copy keeps serving (logged as a warning) and the re-read is retried after 30 seconds. With
+   the memo disabled (`nil`/`0`), every schema lookup reads the store.
 
 After changing the schema in Airtable (e.g. a new single-select option), call
-`Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)` to
-repopulate the store right away. The calling process sees the new schema immediately; with a
+`Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)`,
+which fetches from the API first and then replaces the store entry (a failure deletes nothing).
+The calling process sees the new schema immediately; with a
 **shared** store (e.g. `Rails.cache`) every other process sees it within `schema_memo_ttl`, no
 restart needed. With the default in-process `MemoryCache`, other processes refresh only when their
 own entry expires. `Model.clear_schema_cache` (or `Schema.clear_memo(base_id)`) drops this

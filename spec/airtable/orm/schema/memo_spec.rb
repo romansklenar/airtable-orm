@@ -58,16 +58,17 @@ RSpec.describe Airtable::ORM::Schema::Memo do
   end
 
   describe "outage fallback" do
-    it "keeps serving the previous copy for another TTL when a reload fails" do
+    it "keeps serving the previous copy when a reload fails and retries after FALLBACK_RETRY" do
       allow(Airtable::ORM.config.logger).to receive(:warn)
       load
       @clock += 301
 
       expect(memo.fetch { raise down }).to equal(old_schema)
       expect(Airtable::ORM.config.logger).to have_received(:warn).with(/appTEST.*serving the previous copy/)
-      @clock += 299
+      @clock += described_class::FALLBACK_RETRY - 1
       expect(load(new_schema)).to equal(old_schema)
-      expect(@loads).to eq(1)
+      @clock += 2
+      expect(load(new_schema)).to equal(new_schema)
     end
 
     it "raises when there is no copy to fall back on" do
@@ -93,13 +94,6 @@ RSpec.describe Airtable::ORM::Schema::Memo do
 
       expect(memo.fetch { raise down }).to equal(old_schema)
     end
-
-    it "loses the copy on clear!" do
-      load
-      memo.clear!
-
-      expect { memo.fetch { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
-    end
   end
 
   describe "#refresh" do
@@ -115,6 +109,47 @@ RSpec.describe Airtable::ORM::Schema::Memo do
 
       expect { memo.refresh { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
       expect(load).to equal(old_schema)
+    end
+  end
+
+  describe "concurrent readers" do
+    it "serves the previous copy while another thread reloads" do
+      load
+      @clock += 301
+      entered = Queue.new
+      release = Queue.new
+      reloader = Thread.new do
+        memo.fetch do
+          entered << true
+          release.pop
+          new_schema
+        end
+      end
+      entered.pop
+
+      expect(memo.fetch { raise "must not reload concurrently" }).to equal(old_schema)
+      release << true
+      reloader.join
+      expect(load).to equal(new_schema)
+    end
+
+    it "makes a reader without a copy wait for the reload instead of loading again" do
+      entered = Queue.new
+      release = Queue.new
+      reloader = Thread.new do
+        memo.fetch do
+          entered << true
+          release.pop
+          old_schema
+        end
+      end
+      entered.pop
+      waiter = Thread.new { memo.fetch { raise "must not reload concurrently" } }
+      sleep 0.05 until waiter.status == "sleep"
+      release << true
+
+      expect(waiter.value).to equal(old_schema)
+      reloader.join
     end
   end
 
