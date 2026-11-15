@@ -90,7 +90,8 @@ The base schema (tables, fields, select options) is cached on two levels:
    expiring entry is refetched by one process instead of all of them.
 2. **Per-process memo** — each model class keeps its table schema for `config.schema_memo_ttl`,
    then re-reads the store (not the API). If that re-read fails with an API or connection error,
-   the previous copy keeps serving for another TTL (logged as a warning). With the memo disabled (`nil`/`0`), every schema lookup reads the store.
+   the previous copy keeps serving for another TTL (logged as a warning). With the memo disabled
+   (`nil`/`0`), every schema lookup reads the store.
 
 After changing the schema in Airtable (e.g. a new single-select option), call
 `Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)` to

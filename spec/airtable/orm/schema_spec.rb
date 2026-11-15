@@ -187,6 +187,41 @@ RSpec.describe Airtable::ORM::Schema do
       expect(described_class).to have_received(:fetch).once
     end
 
+    it "keeps the models' fallback copies when a forced refresh fails" do
+      stale = model.schema
+      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect { described_class.fetch(base_id, force_refresh: true) }
+        .to raise_error(Airtable::ORM::ConnectionError)
+      expect(model.schema).to equal(stale)
+    end
+
+    it "does not let a failed refresh overwrite a newer copy stored by another thread" do
+      model.schema
+      @clock += 301
+      newer = { id: "tblQeKH7yYesvWf5p", fields: {} }
+      allow(described_class).to receive(:fetch) do
+        model.send(:memoize_schema, newer, replacing: model.instance_variable_get(:@schema_memo))
+        raise Airtable::ORM::ConnectionError, "down"
+      end
+
+      model.schema
+
+      expect(model.schema).to equal(newer)
+    end
+
+    it "does not memoize a refresh that Schema.clear_cache overtook" do
+      model.schema
+      @clock += 301
+      allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
+        original.call(*args, **kwargs, &block).tap { model.clear_schema_cache } # clear lands mid-refresh
+      end
+
+      2.times { model.schema }
+
+      expect(cache).to have_received(:fetch).exactly(3).times
+    end
+
     it "does not fall back when the refreshed schema lacks the table" do
       model.schema
       @clock += 301

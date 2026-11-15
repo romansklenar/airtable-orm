@@ -57,13 +57,13 @@ module Airtable
           memo = @schema_memo
           return memo.first if memo && schema_clock - memo.last < ttl
 
-          memoize_schema(fetch_table_schema)
+          memoize_schema(fetch_table_schema, replacing: memo)
         rescue Airtable::ORM::ApiError, Airtable::ORM::ConnectionError => e
           raise unless memo
 
           ORM.config.logger.warn("Airtable schema refresh for #{table_name.inspect} failed, " \
                                  "serving the previous copy: #{e.class}: #{e.message}")
-          memoize_schema(memo.first)
+          memoize_schema(memo.first, replacing: memo)
         end
 
         # Clear this class's memoized schema in THIS process only. Schema.clear_cache(base_id)
@@ -128,9 +128,11 @@ module Airtable
           self.config_field_mapping = fields&.except(:_id) || {}
         end
 
-        # Stamped after the fetch, so the TTL starts once the value is actually loaded.
-        def memoize_schema(table_schema)
-          @schema_memo = [table_schema, schema_clock].freeze
+        # Stamped after the fetch, so the TTL starts once the value is actually loaded. Skips the
+        # write if the memo changed meanwhile (another thread refreshed it, or Schema.clear_cache
+        # dropped it), so a slow or failed refresh never puts back an older copy.
+        def memoize_schema(table_schema, replacing:)
+          @schema_memo = [table_schema, schema_clock].freeze if @schema_memo.equal?(replacing)
           table_schema
         end
 
