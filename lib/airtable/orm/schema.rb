@@ -41,7 +41,7 @@ module Airtable
           nil
         end
 
-        # Drops every memo in this process (ORM.reset!).
+        # Drops every memo in this process (ORM.configure and ORM.reset!).
         def reset_memos!
           MEMOS.clear
         end
