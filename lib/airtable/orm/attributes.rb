@@ -50,8 +50,8 @@ module Airtable
         def schema
           return {} unless table_name
 
-          ttl = ORM.config.schema_memo_ttl
-          return fetch_table_schema unless ttl&.positive?
+          ttl = ORM.config.schema_memo_ttl.to_f # nil → 0.0 (off); Float compares cheaply
+          return fetch_table_schema unless ttl.positive?
 
           memo = @schema_memo
           return memo.first if memo && schema_clock - memo.last < ttl
