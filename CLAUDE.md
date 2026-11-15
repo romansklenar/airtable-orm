@@ -19,7 +19,9 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
 - **`ConnectionError` is a deliberate SIBLING of `ApiError`** (both `< Error`), never a subclass:
   `Persistence#save`/`#send_batch_update` rescue `ApiError` into `false`/mark-failed, so a subclass
   would silently swallow outages instead of letting hosts retry. Any new error that must propagate
-  stays outside the `ApiError` branch.
+  stays outside the `ApiError` branch. One deliberate exception: `Schema::Memo#fetch` rescues both
+  on a schema *reload* to keep serving the previous copy (logged) — metadata reads only; record
+  reads/writes still raise. Don't widen it.
 - **`lib/airtable/orm/errors.rb` stays loader-ignored** and eagerly required from the entry point —
   Zeitwerk would demand it define `Airtable::ORM::Errors`, and the eager require is what lets host
   class-body macros (`retry_on Airtable::ORM::ConnectionError`) work without any `require`.
@@ -35,8 +37,15 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
   model class methods (`all/where/first/find/find_many/find_by(!)/create(!)/update_many/count/
   field_options/field_schema/field_mapping/format_formula_value/preload`), instance methods
   (`save(!)/update(!)/destroy/reload/url/changed?/persisted?` …), the DSL
-  (`attribute/has_many/belongs_to/table_name=`), `Collection`, `BatchResult`, and the full error
-  hierarchy. Breaking any of it is a MAJOR bump.
+  (`attribute/has_many/belongs_to/table_name=`), `Collection`, `BatchResult`, `Schema.fetch`
+  (incl. `force_refresh:`)/`clear_cache`/`clear_memo`/`reset_memos!`, the `config.schema_memo_ttl`/
+  `schema_cache_expiry` options, and the full error hierarchy. Breaking any of it is a MAJOR bump.
+- **The schema memo stays a plain per-base TTL memo** (`Schema::Memo`, keyed by `base_id` so a
+  multi-base host needs no memo changes): TTL, previous copy on reload failure, no locks. The
+  thread-coordination trade-offs (concurrent store re-reads after a TTL, per-caller cold-start
+  timeouts, no `race_condition_ttl`, a load racing `clear_cache` or another reload may memoize an
+  older copy for up to one TTL) were accepted on purpose in 0.3.0 — don't re-add single-flight
+  locks, CAS guards or error sharing without a measured problem.
 - **`normalizes` is ActiveModel 8.0+ only** — the include in `attributes.rb` is conditional;
   models on 7.1 simply don't have the DSL. Don't make it unconditional (it NameErrors mid-
   `included` block on 7.1 and takes the class_attribute definitions down with it).
@@ -60,15 +69,16 @@ this repo is **English-only** — code, comments, docs, fixtures (no Czech strin
 ## Testing conventions
 
 - `spec_helper.rb` wires the fixture config at **load time** (test classes read `ORM.config`
-  while spec files load) AND per example via `reset!` + reconfigure — safe here precisely because
+  while spec files load) AND per example via `reset!` + reconfigure (both also drop the schema
+  memos) — safe here precisely because
   nothing is boot-wired (in a Rails host a global reset would unwire the initializer's config;
   hosts restore inline instead).
 - No live HTTP ever: `Testing::StubHelpers` routes through a Faraday test adapter and serves the
   schema from `spec/fixtures/airtable.schema.json`. That fixture is **anonymized** (deterministic
   English placeholder names; real IDs/types/structure) — keep it free of business vocabulary.
 - `MemoryCache` decides hit/miss by key presence (false/nil are cacheable — Rails.cache parity)
-  and holds one coarse mutex across the fetch block (nested fetches would deadlock — fine for the
-  rare schema refresh it serves).
+  and holds one coarse mutex across the fetch block (nested fetches would deadlock — fine, since
+  nothing calls `cache.fetch` from inside the schema fetch block).
 - RuboCop deviations are deliberate and commented in `.rubocop.yml` (multi-constant `errors.rb`,
   the `for_gem_extension` namespace-then-reopen entry point, the dashed require shim, AR-contract
   naming like `has_many`/boolean-returning `save`).

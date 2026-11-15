@@ -42,22 +42,21 @@ module Airtable
           ORM.config.table_id(table_name)
         end
 
-        # Get schema for this table
-        # Memoized at class level to avoid repeated cache lookups
+        # Schema of this table; caching (memo, store, fallback) lives in Schema, keyed by base_id.
         def schema
           return {} unless table_name
 
-          @schema ||= Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
+          Airtable::ORM::Schema.fetch(base_id)[table_id] || raise(
             Airtable::ORM::ConfigurationError,
             "No table #{table_id.inspect} (#{table_name.inspect}) in the fetched schema for base " \
             "#{base_id.inspect} — check config.tables against the Airtable base"
           )
         end
 
-        # Clear the memoized schema cache
-        # Useful for testing or when the schema changes
+        # Drops this process's schema memo for the model's base (shared by every model on it,
+        # fallback copy included) and the field mapping.
         def clear_schema_cache
-          @schema = nil
+          Airtable::ORM::Schema.clear_memo(base_id)
           @field_mapping = nil
         end
 
@@ -83,8 +82,9 @@ module Airtable
         def schema_options
           return {} unless field_mapping.present?
 
+          table_schema = schema
           field_mapping.each_with_object({}) do |(symbol, field_id), options|
-            field_info = schema.dig(:fields, field_id)
+            field_info = table_schema.dig(:fields, field_id)
             next unless field_info
 
             case field_info[:type]

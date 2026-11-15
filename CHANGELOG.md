@@ -1,5 +1,44 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-15
+
+Schema caching rework. Minor (not patch) because `Schema.fetch` and `Model.clear_schema_cache`
+change observable behaviour and new public configuration is added — see Changed below.
+
+### Fixed
+
+- Schema changes now reach running processes without a restart (other processes need a shared
+  `config.cache`, e.g. `Rails.cache`). The per-model memo used to live
+  for the whole process, so neither `Schema.clear_cache` nor store expiry reached running puma or
+  worker processes: a new single-select option stayed invisible (and failed
+  `inclusion: field_options(...)` validations) until a restart.
+
+### Changed
+
+- The base schema is memoized **per base** in each process (`Schema::Memo`, one per `base_id`)
+  instead of per model class: `Schema.fetch(base_id)` reads the memo, then `config.cache`, then
+  `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; `/v0/meta` is still called only
+  on a store miss.
+- If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
+  copy, logs a warning to `config.logger` and retries after 30 seconds (or the TTL, if shorter).
+  Without a copy the error
+  is raised. `fetch(force_refresh: true)` raises on failure, leaving the copy as the fallback.
+- `Schema.clear_cache(base_id)` also expires this process's memo, so the next read reloads (the
+  copy stays as the outage fallback); with a shared store, every other process follows within the
+  TTL.
+- `Model.clear_schema_cache` now drops the memo of the model's whole base (shared by every model
+  on it), fallback copy included. `Airtable::ORM.configure` and `Airtable::ORM.reset!` drop every
+  memo.
+
+### Added
+
+- `config.schema_memo_ttl` (default `5.minutes`; `nil`/`0` disables the memo).
+- `config.schema_cache_expiry` (default `24.hours`, the previous hard-coded value) sets how long
+  the schema lives in `config.cache`. `Schema::CACHE_EXPIRY` is deprecated and no longer read.
+- `Schema.clear_memo(base_id)` and `Schema.reset_memos!` drop in-process memos.
+- Explicit `concurrent-ruby ~> 1.1` dependency (ActiveSupport already pulls in a compatible
+  version).
+
 ## [0.2.3] - 2026-09-24
 
 ### Fixed

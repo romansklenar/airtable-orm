@@ -49,6 +49,6 @@ RSpec.configure do |config|
 
   config.after(:each, :airtable) do
     @stubs&.verify_stubbed_calls
-    Airtable::ORM::Base.descendants.each(&:clear_schema_cache)
+    Airtable::ORM::Base.descendants.each(&:clear_schema_cache) # also resets @field_mapping
   end
 end

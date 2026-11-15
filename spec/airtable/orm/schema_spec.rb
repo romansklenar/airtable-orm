@@ -20,7 +20,7 @@ RSpec.describe Airtable::ORM::Schema do
     stubs = Faraday::Adapter::Test::Stubs.new
     stubs.get("/v0/meta/bases/#{base_id}/tables") do
       @meta_requests += 1
-      [200, { "Content-Type" => "application/json" }, raw_schema]
+      [200, { "Content-Type" => "application/json" }, @served_schema || raw_schema]
     end
 
     connection = Faraday.new do |builder|
@@ -52,6 +52,187 @@ RSpec.describe Airtable::ORM::Schema do
       described_class.fetch(base_id)
       described_class.fetch(base_id, force_refresh: true)
 
+      expect(@meta_requests).to eq(2)
+    end
+  end
+
+  describe ".fetch cache options" do
+    it "passes config.schema_cache_expiry to the store" do
+      Airtable::ORM.config.schema_cache_expiry = 12.hours
+      allow(Airtable::ORM.config.cache).to receive(:fetch).and_call_original
+
+      described_class.fetch(base_id)
+
+      expect(Airtable::ORM.config.cache).to have_received(:fetch)
+        .with("airtable:schema:#{base_id}", expires_in: 12.hours)
+    end
+
+    it "defaults the store expiry to 24 hours" do
+      expect(Airtable::ORM.config.schema_cache_expiry).to eq(24.hours)
+    end
+  end
+
+  describe "per-base memo (config.schema_memo_ttl)" do
+    let(:model) do
+      Class.new(Airtable::ORM::Base) do
+        self.table_name = :case
+        attribute :status, :string
+        attribute :label, :string
+      end
+    end
+    let(:other_model) { Class.new(Airtable::ORM::Base) { self.table_name = :case } }
+    let(:cache) { Airtable::ORM.config.cache }
+    let(:select_schema) do
+      {
+        tables: [{ id: "tblQeKH7yYesvWf5p", name: "Configured",
+                   fields: [{ id: "fldX", name: "Field fldX", type: "singleLineText" },
+                            { id: "fldNew", name: "Field fldNew", type: "singleSelect" }] }]
+      }.to_json
+    end
+
+    before do
+      @clock = 1_000.0
+      allow(described_class::Memo).to receive(:clock) { @clock }
+      allow(cache).to receive(:fetch).and_call_original
+    end
+
+    it "defaults to 5 minutes" do
+      expect(Airtable::ORM.config.schema_memo_ttl).to eq(5.minutes)
+    end
+
+    it "is shared by every model on the base" do
+      model.schema
+      other_model.schema
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "keeps bases apart" do
+      described_class.fetch(base_id)
+      described_class.clear_memo("appOtherBase")
+      described_class.fetch(base_id)
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "re-reads the store, not the API, once the TTL elapses" do
+      model.schema
+      @clock += 301
+      model.schema
+
+      expect(cache).to have_received(:fetch).twice
+      expect(@meta_requests).to eq(1)
+    end
+
+    it "picks up a schema cleared from the store by another process once the TTL elapses" do
+      expect(model.schema[:fields].keys).to eq(["fldX"])
+
+      @served_schema = select_schema
+      cache.delete("airtable:schema:#{base_id}") # Schema.clear_cache run elsewhere
+
+      @clock += 299
+      expect(model.schema[:fields].keys).to eq(["fldX"]) # still memoized in this process
+
+      @clock += 2
+      expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
+      expect(@meta_requests).to eq(2)
+    end
+
+    it "makes Schema.clear_cache visible in this process immediately" do
+      expect(model.schema[:fields].keys).to eq(["fldX"])
+
+      @served_schema = select_schema
+      described_class.clear_cache(base_id)
+
+      expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
+    end
+
+    it "serves the previous copy when the store and API fail after the TTL" do
+      stale = model.schema
+      @clock += 301
+      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect(model.schema).to equal(stale)
+    end
+
+    it "raises a failed forced refresh but keeps the copy for models" do
+      stale = model.schema
+      allow(described_class).to receive(:fetch_from_api).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      expect { described_class.fetch(base_id, force_refresh: true) }
+        .to raise_error(Airtable::ORM::ConnectionError)
+      expect(model.schema).to equal(stale)
+    end
+
+    it "treats symbol and string base IDs as the same base" do
+      described_class.fetch(base_id.to_sym)
+      described_class.fetch(base_id)
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "returns the store's delete result from clear_cache" do
+      described_class.fetch(base_id)
+
+      expect(described_class.clear_cache(base_id)).to be_truthy
+    end
+
+    it "does not create a memo when clearing a base that was never fetched" do
+      described_class.clear_cache("appNeverFetched")
+      described_class.clear_memo("appNeverFetched")
+
+      expect(described_class.send(:const_get, :MEMOS).key?("appNeverFetched")).to be(false)
+    end
+
+    it "ORM.configure drops every memo" do
+      model.schema
+      Airtable::ORM.configure { |c| c.schema_memo_ttl = 10.minutes }
+      model.schema
+
+      expect(cache).to have_received(:fetch).twice
+    end
+
+    it "refetches from the API on force_refresh even within the TTL" do
+      model.schema
+      @served_schema = select_schema
+      described_class.fetch(base_id, force_refresh: true)
+
+      expect(model.schema[:fields].keys).to eq(%w[fldX fldNew])
+      expect(@meta_requests).to eq(2)
+    end
+
+    it "raises ConfigurationError when the schema lacks the table" do
+      allow(described_class).to receive(:fetch).and_return({})
+
+      expect { model.schema }.to raise_error(Airtable::ORM::ConfigurationError)
+    end
+
+    it "reads the store once per field_options call even with the memo disabled" do
+      Airtable::ORM.config.schema_memo_ttl = nil
+      model.config_field_mapping = { status: "fldNew", label: "fldX" }
+      @served_schema = select_schema
+
+      model.field_options(:status)
+
+      expect(cache).to have_received(:fetch).once
+    end
+
+    it "Model.clear_schema_cache drops the base's memo" do
+      model.schema
+      other_model.clear_schema_cache
+      model.schema
+
+      expect(cache).to have_received(:fetch).twice
+    end
+
+    it "ORM.reset! drops every memo" do
+      model.schema
+      Airtable::ORM.reset!
+      configure_airtable_orm_from_fixture
+      allow(Airtable::ORM.config.cache).to receive(:fetch).and_call_original
+      model.schema
+
+      expect(Airtable::ORM.config.cache).to have_received(:fetch).once # fresh config, memo gone
       expect(@meta_requests).to eq(2)
     end
   end

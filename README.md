@@ -53,7 +53,9 @@ end
 | `rate_limit` | `5` | Requests/second per base (Airtable throttles for 30 s above 5) |
 | `logger` | null logger | Batch-update failure reporting |
 | `http_logger` | `nil` | Set to a `Logger` to log Faraday requests |
-| `cache` | in-process `MemoryCache` | Schema cache; anything responding to `fetch`/`delete` |
+| `cache` | in-process `MemoryCache` | Schema cache; anything responding to `fetch(key, expires_in:)`/`delete` |
+| `schema_cache_expiry` | `24.hours` | How long the base schema lives in `cache` before `/v0/meta` is re-read |
+| `schema_memo_ttl` | `5.minutes` | How long each process trusts its in-memory schema before re-reading `cache`; `nil`/`0` disables the memo |
 
 `Airtable::ORM.configured?` returns whether an `api_key` is set — handy for gating enqueue hooks so test/CI environments never touch the network.
 
@@ -75,9 +77,29 @@ end
 - **Querying:** `all`, `where(formula:, sort:, max_records:)`, `first`, `find`, `find_many`, `find_by`/`find_by!`, `count`. Symbol conditions build (and escape) Airtable formulas; pagination is automatic.
 - **Persistence:** `save`/`save!`, `create`/`create!`, `update`/`update!`, `destroy`, `reload`, plus `Model.update_many(records)` batching 10 per PATCH with a `BatchResult` (`updated`/`skipped`/`failed`).
 - **Associations:** `has_many`/`belongs_to` readers, writers, `add_*`/`remove_*`, memoization and `Collection#preload` for eager loading.
-- **Schema:** table/field metadata from `/v0/meta/bases`, cached via `config.cache`; `Model.field_options(:state)` reads select options.
+- **Schema:** table/field metadata from `/v0/meta/bases`, cached via `config.cache`; `Model.field_options(:state)` reads select options. See [Schema caching](#schema-caching).
 - **`#url`** — deeplink to the record in the Airtable UI.
 - **`normalizes`** — available on ActiveModel 8.0+ (the DSL doesn't exist in 7.1).
+
+## Schema caching
+
+The base schema (tables, fields, select options) is cached on two levels, both keyed by base ID:
+
+1. **Store** — `config.cache` holds the indexed base schema for `config.schema_cache_expiry`;
+   `/v0/meta` is only called on a miss.
+2. **Per-process memo** — one memo per base, shared by every model on it, trusted for
+   `config.schema_memo_ttl` and then re-read through the store. If the re-read fails with an API
+   or connection error, the previous copy keeps serving (logged as a warning) and the re-read is
+   retried after 30 seconds (or the TTL, if shorter). With the memo disabled (`nil`/`0`), every
+   schema lookup reads the store.
+
+After changing the schema in Airtable (e.g. a new single-select option), call
+`Airtable::ORM::Schema.clear_cache(base_id)` — or `Schema.fetch(base_id, force_refresh: true)` to
+refetch right away (it raises if Airtable is unreachable). The calling process sees the new schema
+on its next read (barring a reload already in flight); with a **shared** store (e.g. `Rails.cache`) every other process sees it within
+`schema_memo_ttl`, no restart needed. With the default in-process `MemoryCache`, other processes
+refresh only when their own entry expires. `Model.clear_schema_cache` (or
+`Schema.clear_memo(base_id)`) drops this process's memo for the base, without a fallback copy.
 
 ## Errors
 

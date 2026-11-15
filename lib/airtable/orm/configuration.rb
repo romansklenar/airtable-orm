@@ -10,7 +10,8 @@ module Airtable
     class Configuration
       attr_accessor :api_key, :base_id, :tables, :api_url,
                     :open_timeout, :read_timeout, :rate_limit,
-                    :logger, :http_logger, :cache
+                    :logger, :http_logger, :cache,
+                    :schema_cache_expiry, :schema_memo_ttl
 
       def initialize
         @tables = {}
@@ -21,6 +22,8 @@ module Airtable
         @logger = Logger.new(IO::NULL)
         @http_logger = nil             # set to a Logger to enable Faraday request logging
         @cache = MemoryCache.new       # schema cache default; hosts inject Rails.cache
+        @schema_cache_expiry = 24.hours # schema lifetime in `cache` before /v0/meta is re-read
+        @schema_memo_ttl = 5.minutes    # per-process memo before re-reading `cache`; nil/0 = off
       end
 
       # Example: table_fields(:case) => { _id: "id", advisors: "fldgU5KU1qlN8eJ3v", ... }
@@ -41,7 +44,7 @@ module Airtable
       # API on every Schema.fetch (and burn the 5 RPS budget on metadata). Hosts inject a real
       # store (Rails.cache); this one honours only :expires_in. The mutex is held across the
       # fetch block (all keys serialize behind it, and nesting fetch calls would deadlock) —
-      # fine for the rare schema refresh this exists for.
+      # fine, since nothing fetches from inside the schema fetch block.
       class MemoryCache
         def initialize
           @mutex = Mutex.new

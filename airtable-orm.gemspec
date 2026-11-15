@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "activemodel", ">= 7.1", "< 9"
+  spec.add_dependency "concurrent-ruby", "~> 1.1" # Concurrent::Map for the per-base schema memos
   # 2.14.4 floor: older Faraday's JSON response middleware breaks on json 3.0 (every
   # response raises Faraday::ParsingError), and json is resolved by the host, not us.
   spec.add_dependency "faraday", "~> 2.14", ">= 2.14.4"
