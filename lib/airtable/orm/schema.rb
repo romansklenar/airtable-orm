@@ -13,26 +13,19 @@ module Airtable
 
       class << self
         def fetch(base_id, force_refresh: false)
-          cache.delete(cache_key(base_id)) if force_refresh
+          clear_cache(base_id) if force_refresh
 
-          schema = cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
-          # Only after a successful refetch, so a failed one leaves the models' fallback copies.
-          clear_model_memos(base_id) if force_refresh
-          schema
+          cache.fetch(cache_key(base_id), **cache_options) { fetch_from_api(base_id) }
         end
 
-        # Other processes pick the change up when their schema_memo_ttl elapses; this one drops
-        # its model memos right away.
+        # Also expires this process's model memos, so they re-read on next access (keeping their
+        # copy as the outage fallback); other processes follow once their schema_memo_ttl elapses.
         def clear_cache(base_id)
           cache.delete(cache_key(base_id))
-          clear_model_memos(base_id)
+          Base.descendants.each { |model| model.expire_schema_memo if model.base_id == base_id }
         end
 
         private
-
-        def clear_model_memos(base_id)
-          Base.descendants.each { |model| model.clear_schema_cache if model.base_id == base_id }
-        end
 
         def fetch_from_api(base_id)
           response = client.connection.get("/v0/meta/bases/#{base_id}/tables")

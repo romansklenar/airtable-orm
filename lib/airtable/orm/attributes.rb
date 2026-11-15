@@ -66,12 +66,17 @@ module Airtable
           memoize_schema(memo.first, replacing: memo)
         end
 
-        # Clear this class's memoized schema in THIS process only. Schema.clear_cache(base_id)
-        # does it for every model on the base and, with a shared config.cache, reaches other
-        # processes once their schema_memo_ttl elapses.
+        # Clear this class's memoized schema (and field mapping) in THIS process only.
         def clear_schema_cache
           @schema_memo = nil
           @field_mapping = nil
+        end
+
+        # @api private — Schema.clear_cache: force a re-read on next access while keeping the
+        # copy as the outage fallback. A new pair, so an in-flight refresh won't overwrite it.
+        def expire_schema_memo
+          memo = @schema_memo
+          @schema_memo = [memo.first, -Float::INFINITY].freeze if memo
         end
 
         # Get field schema by symbol

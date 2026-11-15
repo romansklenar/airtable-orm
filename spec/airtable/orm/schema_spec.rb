@@ -200,7 +200,7 @@ RSpec.describe Airtable::ORM::Schema do
       model.schema
       @clock += 301
       newer = { id: "tblQeKH7yYesvWf5p", fields: {} }
-      allow(described_class).to receive(:fetch) do
+      allow(described_class).to receive(:fetch) do # simulates another thread's write mid-refresh
         model.send(:memoize_schema, newer, replacing: model.instance_variable_get(:@schema_memo))
         raise Airtable::ORM::ConnectionError, "down"
       end
@@ -210,11 +210,22 @@ RSpec.describe Airtable::ORM::Schema do
       expect(model.schema).to equal(newer)
     end
 
+    it "keeps the fallback copy when Schema.clear_cache runs during an outage" do
+      stale = model.schema
+      allow(cache).to receive(:fetch).and_raise(Airtable::ORM::ConnectionError, "down")
+
+      described_class.clear_cache(base_id)
+
+      expect(model.schema).to equal(stale)
+      expect(cache).to have_received(:fetch).twice # warm-up + the expired memo's re-read
+    end
+
     it "does not memoize a refresh that Schema.clear_cache overtook" do
       model.schema
       @clock += 301
       allow(cache).to receive(:fetch).and_wrap_original do |original, *args, **kwargs, &block|
-        original.call(*args, **kwargs, &block).tap { model.clear_schema_cache } # clear lands mid-refresh
+        # clear lands mid-refresh
+        original.call(*args, **kwargs, &block).tap { described_class.clear_cache(base_id) }
       end
 
       2.times { model.schema }

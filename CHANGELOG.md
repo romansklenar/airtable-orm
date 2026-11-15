@@ -8,10 +8,11 @@
   `config.schema_memo_ttl` (default 5 minutes; `nil`/`0` disables the memo). Previously the
   class-level memo lived for the whole process, so `Schema.clear_cache` and store expiry never
   reached running processes — a new single-select option stayed invisible (and failed
-  `inclusion: field_options(...)` validations) until a restart. `Schema.clear_cache` (and a
-  successful `fetch(force_refresh: true)`) now also drops the calling process's model memos;
-  with a shared store, every other process picks up the cleared schema within the TTL. `/v0/meta` is still called only on a
-  store miss, and a failed refresh keeps serving the previous copy for another TTL.
+  `inclusion: field_options(...)` validations) until a restart. `Schema.clear_cache` (and
+  `fetch(force_refresh: true)`) now also expires the calling process's model memos; with a shared
+  store, every other process picks up the cleared schema within the TTL. `/v0/meta` is still
+  called only on a store miss, and a failed refresh keeps serving the previous copy for another
+  TTL.
 
 ### Added
 
