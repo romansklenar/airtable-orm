@@ -165,7 +165,7 @@ RSpec.describe Airtable::ORM::Schema do
       expect(cache).to have_received(:fetch).once
     end
 
-    it "drops this process's model memos on Schema.clear_cache" do
+    it "expires this process's model memos on Schema.clear_cache" do
       expect(model.schema[:fields].keys).to eq(["fldX"])
 
       @served_schema = select_schema

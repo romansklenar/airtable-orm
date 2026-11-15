@@ -42,12 +42,10 @@ module Airtable
           ORM.config.table_id(table_name)
         end
 
-        # Get schema for this table.
-        # Memoized per class for config.schema_memo_ttl, then re-read via Schema.fetch (the
-        # cache store; /v0/meta only on a store miss). If that re-read fails with an API or
-        # connection error, the expired copy keeps serving until the next TTL. The
-        # [schema, loaded_at] pair is one ivar assigned in one step, so concurrent readers never
-        # see a mismatched pair.
+        # Table schema, memoized per class for config.schema_memo_ttl, then re-read via
+        # Schema.fetch (the cache store; /v0/meta only on a store miss). If the re-read fails with
+        # an API or connection error, the previous copy serves for another TTL. [schema, loaded_at]
+        # lives in one ivar so concurrent readers never see a mismatched pair.
         def schema
           return {} unless table_name
 
@@ -72,8 +70,8 @@ module Airtable
           @field_mapping = nil
         end
 
-        # @api private — Schema.clear_cache: force a re-read on next access while keeping the
-        # copy as the outage fallback. A new pair, so an in-flight refresh won't overwrite it.
+        # :nodoc: @api private — used by Schema.clear_cache. Forces a re-read on next access but
+        # keeps the copy as the outage fallback.
         def expire_schema_memo
           memo = @schema_memo
           @schema_memo = [memo.first, -Float::INFINITY].freeze if memo
@@ -133,9 +131,9 @@ module Airtable
           self.config_field_mapping = fields&.except(:_id) || {}
         end
 
-        # Stamped after the fetch, so the TTL starts once the value is actually loaded. Skips the
-        # write if the memo changed meanwhile (another thread refreshed it, or Schema.clear_cache
-        # dropped it), so a slow or failed refresh never puts back an older copy.
+        # Stamped after the fetch, so the TTL starts once the value is loaded. Skips the write if
+        # the memo changed meanwhile (another thread refreshed it, or Schema.clear_cache expired
+        # it), so a slow or failed refresh doesn't put back an older copy (best effort, no lock).
         def memoize_schema(table_schema, replacing:)
           @schema_memo = [table_schema, schema_clock].freeze if @schema_memo.equal?(replacing)
           table_schema

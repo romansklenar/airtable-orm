@@ -98,8 +98,8 @@ After changing the schema in Airtable (e.g. a new single-select option), call
 repopulate the store right away. The calling process sees the new schema immediately; with a
 **shared** store (e.g. `Rails.cache`) every other process sees it within `schema_memo_ttl`, no
 restart needed. With the default in-process `MemoryCache`, other processes refresh only when their
-own entry expires. `Model.clear_schema_cache` drops just that class's memo (no fallback copy) in the
-current process.
+own entry expires. `Model.clear_schema_cache` drops just that class's memo (no fallback copy) in
+the current process.
 
 ## Errors
 

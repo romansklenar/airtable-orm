@@ -55,10 +55,9 @@ module Airtable
           tables.index_by { |table| table[:id] }
         end
 
-        # Only ActiveSupport stores understand :race_condition_ttl — the built-in MemoryCache
-        # (and any minimal host store) accepts just :expires_in. While ActiveSupport::Cache is
-        # still an unloaded autoload the store can't be one of its subclasses, so the check
-        # doesn't load the cache library into a standalone host.
+        # Only ActiveSupport stores understand :race_condition_ttl (MemoryCache takes just
+        # :expires_in). An unloaded ActiveSupport::Cache autoload means the store can't be one, so
+        # standalone hosts never load the cache library for this check.
         def cache_options
           options = { expires_in: ORM.config.schema_cache_expiry }
           options[:race_condition_ttl] = RACE_CONDITION_TTL if active_support_store?
