@@ -15,6 +15,12 @@ RSpec.describe Airtable::ORM::Schema::Memo do
     allow(described_class).to receive(:clock) { @clock }
   end
 
+  # Blocks until the thread is parked (waiting on a lock/queue); fails instead of hanging if it dies.
+  def wait_until_blocked(thread)
+    Timeout.timeout(2) { sleep 0.01 until thread.status == "sleep" || !thread.alive? }
+    raise "thread died early: #{thread.value.inspect}" unless thread.alive?
+  end
+
   def load(value = old_schema)
     memo.fetch do
       @loads += 1
@@ -36,6 +42,15 @@ RSpec.describe Airtable::ORM::Schema::Memo do
 
     expect(load(new_schema)).to eq(new_schema)
     expect(@loads).to eq(2)
+  end
+
+  it "never reloads with an infinite TTL" do
+    Airtable::ORM.config.schema_memo_ttl = Float::INFINITY
+    load
+    @clock += 10**9
+    load
+
+    expect(@loads).to eq(1)
   end
 
   it "reloads on every read when disabled" do
@@ -72,6 +87,13 @@ RSpec.describe Airtable::ORM::Schema::Memo do
     end
 
     it "raises when there is no copy to fall back on" do
+      expect { memo.fetch { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
+    end
+
+    it "drops the copy on clear!" do
+      load
+      memo.clear!
+
       expect { memo.fetch { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
     end
 
@@ -133,6 +155,27 @@ RSpec.describe Airtable::ORM::Schema::Memo do
       expect(load).to equal(new_schema)
     end
 
+    it "makes a reader wait for the reload right after expire! instead of serving the old copy" do
+      load
+      memo.expire!
+      entered = Queue.new
+      release = Queue.new
+      reloader = Thread.new do
+        memo.fetch do
+          entered << true
+          release.pop
+          new_schema
+        end
+      end
+      entered.pop
+      waiter = Thread.new { memo.fetch { raise "must not reload concurrently" } }
+      wait_until_blocked(waiter)
+      release << true
+
+      expect(waiter.value).to equal(new_schema)
+      reloader.join
+    end
+
     it "makes a reader without a copy wait for the reload instead of loading again" do
       entered = Queue.new
       release = Queue.new
@@ -145,25 +188,48 @@ RSpec.describe Airtable::ORM::Schema::Memo do
       end
       entered.pop
       waiter = Thread.new { memo.fetch { raise "must not reload concurrently" } }
-      sleep 0.05 until waiter.status == "sleep"
+      wait_until_blocked(waiter)
       release << true
 
       expect(waiter.value).to equal(old_schema)
       reloader.join
     end
+
+    it "shares a failed load with readers that queued behind it instead of repeating it" do
+      entered = Queue.new
+      release = Queue.new
+      leader = Thread.new do
+        Thread.current.report_on_exception = false
+        memo.fetch do
+          entered << true
+          release.pop
+          @clock += 1 # the load takes time
+          raise down
+        end
+      end
+      entered.pop
+      waiter = Thread.new do
+        Thread.current.report_on_exception = false
+        memo.fetch { raise "must not reload after the shared failure" }
+      end
+      wait_until_blocked(waiter)
+      release << true
+
+      expect { leader.join }.to raise_error(Airtable::ORM::ConnectionError)
+      expect { waiter.join }.to raise_error(Airtable::ORM::ConnectionError, "down")
+      expect(load).to equal(old_schema) # a later read retries normally
+    end
   end
 
   describe "concurrent writers" do
-    it "does not let a failed reload overwrite a newer copy stored meanwhile" do
+    it "does not let a refresh overwrite an expire! that landed during its load" do
       load
-      @clock += 301
-
-      memo.fetch do
-        memo.refresh { new_schema } # another thread's reload completes first
-        raise down
+      memo.refresh do
+        memo.expire! # Schema.clear_cache lands mid-refresh
+        new_schema
       end
 
-      expect(load).to equal(new_schema)
+      expect(load(:after_clear)).to eq(:after_clear)
     end
 
     it "does not store a first load that expire! overtook" do

@@ -53,7 +53,7 @@ end
 | `rate_limit` | `5` | Requests/second per base (Airtable throttles for 30 s above 5) |
 | `logger` | null logger | Batch-update failure reporting |
 | `http_logger` | `nil` | Set to a `Logger` to log Faraday requests |
-| `cache` | in-process `MemoryCache` | Schema cache; anything responding to `fetch`/`delete` |
+| `cache` | in-process `MemoryCache` | Schema cache; anything responding to `fetch(key, expires_in:)`/`delete` |
 | `schema_cache_expiry` | `24.hours` | How long the base schema lives in `cache` before `/v0/meta` is re-read |
 | `schema_memo_ttl` | `5.minutes` | How long each process trusts its in-memory schema before re-reading `cache`; `nil`/`0` disables the memo |
 
@@ -91,7 +91,8 @@ The base schema (tables, fields, select options) is cached on two levels, both k
 2. **Per-process memo** — one memo per base, shared by every model on it, trusted for
    `config.schema_memo_ttl`, then re-read from the store (not the API) by one thread while the
    others keep reading the previous copy. If that re-read fails with an API or connection error,
-   the copy keeps serving (logged as a warning) and the re-read is retried after 30 seconds. With
+   the copy keeps serving (logged as a warning) and the re-read is retried after 30 seconds (or the
+   TTL, if shorter). With
    the memo disabled (`nil`/`0`), every schema lookup reads the store.
 
 After changing the schema in Airtable (e.g. a new single-select option), call

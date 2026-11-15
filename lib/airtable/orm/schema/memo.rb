@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
-require "monitor"
-
 module Airtable
   module ORM
     class Schema
       # Per-process memo of ONE base's indexed schema in front of the cache store (Schema keeps
-      # one per base_id). Trusted for config.schema_memo_ttl; then one thread reloads while the
-      # others keep reading the previous copy. If a reload fails with an API or connection error,
-      # the copy keeps serving and the reload is retried after FALLBACK_RETRY.
+      # one per base_id). Trusted for config.schema_memo_ttl; then one thread reloads while readers
+      # with a copy keep reading it and readers without one wait (sharing the result or error).
+      # If a reload fails with an API or connection error, the copy keeps serving and the reload
+      # is retried after FALLBACK_RETRY.
       class Memo
-        Entry = Struct.new(:schema, :loaded_at)
+        Entry = Struct.new(:schema, :expires_at)
         FALLBACK_RETRY = 30 # seconds (capped by the TTL)
+        CLEARED = -Float::INFINITY # expires_at of an entry expire!/clear! replaced
 
         def self.clock
           Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -20,8 +20,9 @@ module Airtable
         def initialize(base_id)
           @base_id = base_id
           @entry = nil
-          @reload_lock = Monitor.new # one reload at a time; held across the load
-          @write_lock = Mutex.new    # short, never held across a load, so expire! never waits
+          @last_failure = nil # [error, failed_at] of the latest reload that had no copy to serve
+          @reload_lock = Mutex.new # one reload at a time; held across the load
+          @write_lock = Mutex.new  # short, never held across a load, so expire! never waits
         end
 
         # Memoized schema, reloading via the block once the TTL has elapsed.
@@ -30,41 +31,67 @@ module Airtable
 
           entry = @entry
           return entry.schema if fresh?(entry)
-          return entry.schema if entry&.schema && reloading_elsewhere?
+          # Stale (not cleared) copy and another thread is reloading: serve the copy meanwhile.
+          return entry.schema if servable_while_reloading?(entry) && !@reload_lock.try_lock
 
-          @reload_lock.synchronize { reload(&) }
+          return reload_and_unlock(&) if @reload_lock.owned?
+
+          waiting_since = self.class.clock
+          @reload_lock.synchronize { reload(waiting_since, &) }
         end
 
         # Reload via the block now; raises on failure, leaving the previous copy as the fallback.
-        def refresh(&)
+        def refresh
           return yield unless memoizing?
 
-          @reload_lock.synchronize { store(yield, replacing: @entry) }
+          @reload_lock.synchronize do
+            entry = @entry
+            store(yield, replacing: entry)
+          end
         end
 
-        # Force a reload on next read but keep the copy as the outage fallback. Always a new entry,
-        # so a load in flight (even the first one) sees the change and won't store its result.
+        # Force a reload on next read but keep the copy as the outage fallback. A new entry, so a
+        # load in flight (even the first one) sees the change and won't store its result.
         def expire!
-          @write_lock.synchronize { @entry = Entry.new(@entry&.schema, -Float::INFINITY).freeze }
+          @write_lock.synchronize { @entry = Entry.new(@entry&.schema, CLEARED).freeze }
+        end
+
+        # Like expire!, but also drops the fallback copy.
+        def clear!
+          @write_lock.synchronize { @entry = Entry.new(nil, CLEARED).freeze }
         end
 
         private
 
-        def reload
+        def reload_and_unlock(&)
+          reload(self.class.clock, &)
+        ensure
+          @reload_lock.unlock
+        end
+
+        def reload(waiting_since)
           entry = @entry
           return entry.schema if fresh?(entry) # another thread reloaded while we waited
 
+          # The load we queued behind failed with nothing to serve: share its error, don't repeat
+          # it (otherwise N cold-start threads would each wait out a timeout in turn).
+          error, failed_at = @last_failure
+          raise error if failed_at && failed_at > waiting_since
+
           store(yield, replacing: entry)
         rescue ApiError, ConnectionError => e
-          raise unless entry&.schema
+          unless entry&.schema
+            @last_failure = [e, self.class.clock] unless e.equal?(error)
+            raise
+          end
 
           ORM.config.logger.warn("Airtable schema refresh for base #{@base_id} failed, " \
                                  "serving the previous copy: #{e.class}: #{e.message}")
           store(entry.schema, replacing: entry, expires_in: [FALLBACK_RETRY, ttl].min)
         end
 
-        def reloading_elsewhere?
-          @reload_lock.mon_locked? && !@reload_lock.mon_owned?
+        def servable_while_reloading?(entry)
+          entry&.schema && entry.expires_at != CLEARED
         end
 
         def memoizing?
@@ -72,7 +99,7 @@ module Airtable
         end
 
         def fresh?(entry)
-          entry && self.class.clock - entry.loaded_at < ttl
+          entry && self.class.clock < entry.expires_at
         end
 
         def ttl
@@ -82,8 +109,8 @@ module Airtable
         # Stamped after the load, so the TTL starts once the value is in hand. Only replaces the
         # entry the load started from, so an overtaken load never restores an older copy.
         def store(schema, replacing:, expires_in: ttl)
-          loaded_at = self.class.clock - ttl + expires_in
-          @write_lock.synchronize { @entry = Entry.new(schema, loaded_at).freeze if @entry.equal?(replacing) }
+          expires_at = self.class.clock + expires_in
+          @write_lock.synchronize { @entry = Entry.new(schema, expires_at).freeze if @entry.equal?(replacing) }
           schema
         end
       end
