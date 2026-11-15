@@ -32,9 +32,9 @@ module Airtable
           entry = @entry
           return entry.schema if fresh?(entry)
           # Stale (not cleared) copy and another thread is reloading: serve the copy meanwhile.
-          return entry.schema if servable_while_reloading?(entry) && !@reload_lock.try_lock
-
-          return reload_and_unlock(&) if @reload_lock.owned?
+          # (A racy check by design: losing it only means briefly waiting below. synchronize keeps
+          # lock/unlock paired even under Thread#raise, e.g. from rack-timeout.)
+          return entry.schema if servable_while_reloading?(entry) && @reload_lock.locked?
 
           waiting_since = self.class.clock
           @reload_lock.synchronize { reload(waiting_since, &) }
@@ -62,12 +62,6 @@ module Airtable
         end
 
         private
-
-        def reload_and_unlock(&)
-          reload(self.class.clock, &)
-        ensure
-          @reload_lock.unlock
-        end
 
         def reload(waiting_since)
           entry = @entry

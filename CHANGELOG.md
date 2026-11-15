@@ -17,8 +17,8 @@ change observable behaviour and new public configuration is added — see Change
 - The base schema is memoized **per base** in each process (`Schema::Memo`, one per `base_id`)
   instead of per model class: `Schema.fetch(base_id)` reads the memo, then `config.cache`, then
   `/v0/meta`. The memo is trusted for `config.schema_memo_ttl`; then one thread per process
-  reloads while the others keep reading the previous copy. `/v0/meta` is still called only on a
-  store miss.
+  reloads while the others keep reading the previous copy (after `Schema.clear_cache` they wait
+  for the reload). `/v0/meta` is still called only on a store miss.
 - If a reload fails with `ApiError` or `ConnectionError`, `Schema.fetch` keeps serving the previous
   copy, logs a warning to `config.logger` and retries after 30 seconds. Without a copy the error
   is raised.
@@ -40,7 +40,8 @@ change observable behaviour and new public configuration is added — see Change
 - ActiveSupport cache stores receive `race_condition_ttl: 30.seconds` on the schema fetch, so an
   expiring entry is refetched by one process instead of all of them. The built-in `MemoryCache`
   and other non-ActiveSupport stores still get only `:expires_in`.
-- Explicit `concurrent-ruby ~> 1.1` dependency (already present via ActiveSupport).
+- Explicit `concurrent-ruby ~> 1.1` dependency (ActiveSupport already pulls in a compatible
+  version).
 
 ## [0.2.3] - 2026-09-24
 

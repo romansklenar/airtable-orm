@@ -243,6 +243,15 @@ RSpec.describe Airtable::ORM::Schema::Memo do
       expect(@loads).to eq(1)
     end
 
+    it "does not store a first load that clear! overtook" do
+      memo.fetch do
+        memo.clear! # Schema.clear_memo lands mid-load
+        old_schema
+      end
+
+      expect(load(new_schema)).to equal(new_schema)
+    end
+
     it "does not store a reload that expire! overtook" do
       load
       @clock += 301

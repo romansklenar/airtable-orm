@@ -186,6 +186,21 @@ RSpec.describe Airtable::ORM::Schema do
       expect(cache).to have_received(:fetch).once
     end
 
+    it "clears a memo in place, so concurrent readers keep sharing one reload" do
+      described_class.fetch(base_id)
+      memos = described_class.send(:const_get, :MEMOS)
+      before = memos[base_id]
+      described_class.clear_memo(base_id)
+
+      expect(memos[base_id]).to equal(before)
+    end
+
+    it "returns the store's delete result from clear_cache" do
+      described_class.fetch(base_id)
+
+      expect(described_class.clear_cache(base_id)).to be_truthy
+    end
+
     it "does not create a memo when clearing a base that was never fetched" do
       described_class.clear_cache("appNeverFetched")
       described_class.clear_memo("appNeverFetched")

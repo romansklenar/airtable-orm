@@ -32,8 +32,7 @@ module Airtable
         # Deletes the store entry and expires this process's memo (it keeps its copy as the outage
         # fallback); with a shared store, other processes follow once their schema_memo_ttl elapses.
         def clear_cache(base_id)
-          cache.delete(cache_key(base_id))
-          MEMOS[base_id.to_s]&.expire!
+          cache.delete(cache_key(base_id)).tap { MEMOS[base_id.to_s]&.expire! }
         end
 
         # Drops this process's memo for the base, fallback copy included.
