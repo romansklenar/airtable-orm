@@ -35,7 +35,7 @@ module Airtable
 
         # Drops this process's memo for the base, fallback copy included.
         def clear_memo(base_id)
-          MEMOS[base_id.to_s]&.clear!
+          MEMOS.delete(base_id.to_s)
           nil
         end
 

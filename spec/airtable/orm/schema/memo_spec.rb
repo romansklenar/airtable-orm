@@ -84,13 +84,6 @@ RSpec.describe Airtable::ORM::Schema::Memo do
       expect { memo.fetch { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
     end
 
-    it "drops the copy on clear!" do
-      load
-      memo.clear!
-
-      expect { memo.fetch { raise down } }.to raise_error(Airtable::ORM::ConnectionError)
-    end
-
     it "lets other errors propagate" do
       load
       @clock += 301

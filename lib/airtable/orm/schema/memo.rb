@@ -48,11 +48,6 @@ module Airtable
           @entry = Entry.new(entry.schema, -Float::INFINITY).freeze if entry
         end
 
-        # Forget everything, including the fallback copy.
-        def clear!
-          @entry = nil
-        end
-
         private
 
         def memoizing?
